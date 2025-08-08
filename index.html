@@ -89,19 +89,19 @@
             </div>
             <nav id="main-nav" class="bg-slate-100 border-t border-b border-slate-200 overflow-x-auto whitespace-nowrap">
                 <div id="nav-container" class="container mx-auto flex">
-                   </div>
+                </div>
             </nav>
         </header>
 
         <main class="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto bg-gray-100">
             <div id="view-container" class="container mx-auto">
-                </div>
+            </div>
         </main>
     </div>
     
     <div id="modal-container" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
         <div id="modal-content" class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 m-4">
-            </div>
+        </div>
     </div>
 
 
@@ -138,10 +138,10 @@
             expenses: [],
             expenseCategories: [],
             purchaseOrders: [],
-            receivables: [], 
+            receivables: [], // NOVO: Contas a Receber (substitui a lógica de 'debt')
             quoteToConvert: null,
             currentView: 'dashboard',
-            currentParam: null
+            currentParam: null // NOVO: Para passar parâmetros entre views, como ID do cliente
         };
 
         // --- INICIALIZAÇÃO DA APLICAÇÃO ---
@@ -168,7 +168,7 @@
                 expenses: `${basePath}/expenses`,
                 expenseCategories: `${basePath}/expenseCategories`,
                 purchaseOrders: `${basePath}/purchaseOrders`,
-                receivables: `${basePath}/receivables`,
+                receivables: `${basePath}/receivables`, // NOVO
             };
         }
         const dbPaths = setupDbPaths();
@@ -196,7 +196,7 @@
             onSnapshot(query(collection(db, dbPaths.expenses)), s => { state.expenses = s.docs.map(d => ({ id: d.id, ...d.data() })); if (['contas_a_pagar', 'financeiro'].includes(state.currentView)) render(); });
             onSnapshot(query(collection(db, dbPaths.expenseCategories)), s => { state.expenseCategories = s.docs.map(d => ({ id: d.id, ...d.data() })); if (['contas_a_pagar', 'financeiro'].includes(state.currentView)) render(); });
             onSnapshot(query(collection(db, dbPaths.purchaseOrders)), s => { state.purchaseOrders = s.docs.map(d => ({ id: d.id, ...d.data() })); if (['compras', 'contas_a_pagar'].includes(state.currentView)) render(); });
-            onSnapshot(query(collection(db, dbPaths.receivables)), s => { state.receivables = s.docs.map(d => ({ id: d.id, ...d.data() })); if (['cobranca', 'clientProfile'].includes(state.currentView)) render(); });
+            onSnapshot(query(collection(db, dbPaths.receivables)), s => { state.receivables = s.docs.map(d => ({ id: d.id, ...d.data() })); if (['cobranca', 'clientProfile', 'vendas'].includes(state.currentView)) render(); });
 
             const sessionsQuery = query(collection(db, dbPaths.sessions));
             onSnapshot(sessionsQuery, (snapshot) => {
@@ -286,41 +286,30 @@
                 dashboard: 'Início',
                 financeiro: 'Financeiro',
                 contas_a_pagar: 'Contas a Pagar',
-                cobranca: 'Cobrança',
+                cobranca: 'Cobrança', // Antiga "Pagamentos"
                 opcoes: 'Opções'
             }
         };
 
-        // CORRIGIDO E MELHORADO - Mantém a aba "Clientes" ativa ao ver um perfil
+        function renderNav() {
+            const viewsForModule = moduleViews[state.currentModule] || {};
+            navContainer.innerHTML = Object.entries(viewsForModule).map(([view, title]) =>
+                `<a href="#" class="nav-link px-4 py-3 text-sm font-medium text-slate-600 hover:bg-slate-200 border-b-2 border-transparent transition-colors" data-view="${view}">${title}</a>`
+            ).join('');
+        }
+
+        // ALTERADO para aceitar parâmetros
         function navigateTo(view, param = null) {
             state.currentView = view;
             state.currentParam = param;
             
-            let activeView = view;
-            if (view === 'clientProfile') {
-                activeView = 'clientes'; // Mantém a aba de clientes ativa
-            }
-
             document.querySelectorAll('.nav-link').forEach(link => {
                 link.classList.remove('active');
-                if (link.dataset.view === activeView) {
+                if (link.dataset.view === view) {
                     link.classList.add('active');
                 }
             });
             render();
-        }
-        
-        // CORRIGIDO - Garante que a navegação seja sempre renderizada corretamente
-        function renderNav() {
-            const currentModuleNavs = moduleViews[state.currentModule];
-            if (!currentModuleNavs) {
-                console.error("Módulo de navegação inválido:", state.currentModule);
-                navContainer.innerHTML = ''; // Limpa para evitar erro
-                return;
-            }
-            navContainer.innerHTML = Object.entries(currentModuleNavs).map(([view, name]) =>
-                `<a href="#" data-view="${view}" class="nav-link font-medium text-slate-700 px-4 py-3 border-b-2 border-transparent hover:bg-slate-200 transition-colors">${name}</a>`
-            ).join('');
         }
 
         document.getElementById('main-nav').addEventListener('click', (e) => {
@@ -338,7 +327,7 @@
             const views = {
                 dashboard: renderDashboard,
                 clientes: renderClientes,
-                clientProfile: () => renderClientProfile(state.currentParam),
+                clientProfile: () => renderClientProfile(state.currentParam), // NOVO
                 produtos: renderProdutos,
                 compras: renderCompras,
                 estoque: () => { const html = renderEstoque(); renderSalesChart(); return html; },
@@ -455,17 +444,19 @@
             });
         }
         
+        // ALTERADO - Adicionado botão de Ver Perfil
         function renderClientes() {
-            const clientsRows = state.clients.map(client => `<tr class="border-b"><td class="p-4">${client.code}</td><td class="p-4 font-medium">${client.name}</td><td class="p-4 hidden sm:table-cell">${client.cpf||'N/A'}</td><td class="p-4 hidden md:table-cell">${client.phone||'N/A'}</td><td class="p-4 flex gap-2"><button class="btn-view-profile p-2 text-green-600" data-client-id="${client.id}" title="Ver Perfil"><i data-lucide="eye" class="w-5 h-5"></i></button><button class="btn-edit-client p-2 text-blue-500" data-client-id="${client.id}" title="Editar"><i data-lucide="edit" class="w-5 h-5"></i></button><button class="btn-delete-client p-2 text-red-500" data-client-id="${client.id}" title="Excluir"><i data-lucide="trash-2" class="w-5 h-5"></i></button></td></tr>`).join('');
+            const clientsRows = state.clients.map(client => `<tr class="border-b"><td class="p-4">${client.code}</td><td class="p-4 font-medium">${client.name}</td><td class="p-4 hidden sm:table-cell">${client.cpf||'N/A'}</td><td class="p-4 hidden md:table-cell">${client.phone||'N/A'}</td><td class="p-4 flex gap-2"><button class="btn-view-profile p-2 text-green-600 hover:bg-green-100 rounded-full" title="Ver Perfil" data-client-id="${client.id}"><i data-lucide="eye" class="w-5 h-5"></i></button><button class="btn-edit-client p-2 text-blue-500 hover:bg-blue-100 rounded-full" title="Editar" data-client-id="${client.id}"><i data-lucide="edit" class="w-5 h-5"></i></button><button class="btn-delete-client p-2 text-red-500 hover:bg-red-100 rounded-full" title="Excluir" data-client-id="${client.id}"><i data-lucide="trash-2" class="w-5 h-5"></i></button></td></tr>`).join('');
             return `
                 <div class="flex justify-between items-center mb-6 flex-wrap gap-4"><h2 class="text-3xl font-bold text-slate-800">Gerenciar Clientes</h2><button id="btn-new-client" class="bg-pink-400 text-white px-5 py-3 rounded-lg font-semibold hover:bg-pink-500 flex items-center"><i data-lucide="plus" class="w-5 h-5 mr-2"></i> Novo Cliente</button></div>
                 <div class="bg-white rounded-lg shadow overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr><th class="p-4 text-left">Cód.</th><th class="p-4 text-left">Nome</th><th class="p-4 text-left hidden sm:table-cell">CPF</th><th class="p-4 text-left hidden md:table-cell">Telefone</th><th class="p-4 text-left">Ações</th></tr></thead><tbody>${clientsRows||'<tr><td colspan="5" class="p-4 text-center">Nenhum cliente.</td></tr>'}</tbody></table></div></div>
             `;
         }
 
+        // NOVO - VIEW DE PERFIL DO CLIENTE
         function renderClientProfile(clientId) {
             const client = state.clients.find(c => c.id === clientId);
-            if (!client) return `<h2 class="text-3xl">Cliente não encontrado</h2>`;
+            if (!client) return `<h2 class="text-3xl">Cliente não encontrado</h2><p><button id="btn-back-to-clients" class="text-blue-500 hover:underline">Voltar</button></p>`;
 
             const clientSales = state.sales.filter(s => s.clientId === clientId).sort((a,b) => b.date.toDate() - a.date.toDate());
             const clientReceivables = state.receivables.filter(r => r.clientId === clientId).sort((a,b) => a.dueDate.toDate() - b.dueDate.toDate());
@@ -474,19 +465,17 @@
                 <tr class="border-b">
                     <td class="p-3">${s.date.toDate().toLocaleDateString('pt-BR')}</td>
                     <td class="p-3">${s.items.map(i => `${i.quantity}x ${i.productName}`).join(', ')}</td>
-                    <td class="p-3">${s.paymentMethod} ${s.installmentsCount ? `(${s.installmentsCount}x)`: ''}</td>
+                    <td class="p-3">${s.paymentMethod} ${s.installmentsCount ? `(${s.installmentsCount}x)` : ''}</td>
                     <td class="p-3 text-right font-semibold">R$ ${s.total.toFixed(2).replace('.',',')}</td>
                 </tr>
             `).join('');
 
             const receivablesRows = clientReceivables.map(r => {
-                const today = new Date();
-                today.setHours(0,0,0,0);
-                const isOverdue = r.status === 'Pendente' && r.dueDate.toDate() < today;
-                const statusClass = r.status === 'Pago' ? 'bg-green-200 text-green-800' : (isOverdue ? 'bg-red-200 text-red-800' : 'bg-yellow-200 text-yellow-800');
+                const isOverdue = r.status === 'Pendente' && r.dueDate.toDate() < new Date();
+                const statusClass = r.status === 'Pago' ? 'bg-green-100 text-green-800' : (isOverdue ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800');
                 return `
                     <tr class="border-b">
-                        <td class="p-3">${r.dueDate.toDate().toLocaleDateString('pt-BR')}</td>
+                        <td class="p-3 ${isOverdue ? 'font-bold' : ''}">${r.dueDate.toDate().toLocaleDateString('pt-BR')}</td>
                         <td class="p-3 text-right">R$ ${r.amount.toFixed(2).replace('.',',')}</td>
                         <td class="p-3 text-center">${r.installmentNumber}/${r.totalInstallments}</td>
                         <td class="p-3 text-center"><span class="px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">${isOverdue ? 'Vencido' : r.status}</span></td>
@@ -495,7 +484,7 @@
                 `
             }).join('');
             
-            const latePaymentWarning = (client.latePaymentsCount || 0) >= 3 ? `<div class="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-100" role="alert"><span class="font-medium">Atenção!</span> Cliente com histórico de ${client.latePaymentsCount} atrasos. Cautela ao vender a prazo.</div>` : '';
+            const latePaymentWarning = (client.latePaymentsCount || 0) >= 3 ? `<div class="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-100" role="alert"><span class="font-medium">Atenção!</span> Cliente com histórico de ${client.latePaymentsCount} pagamentos em atraso. Cautela ao vender a prazo.</div>` : '';
 
             return `
                 <div class="mb-6"><button id="btn-back-to-clients" class="flex items-center gap-2 text-slate-600 hover:text-brand-pink"><i data-lucide="arrow-left"></i> Voltar para Clientes</button></div>
@@ -529,6 +518,7 @@
             `;
         }
         
+        // ALTERADO - ADICIONADO DATA DE VALIDADE
         function renderProdutos() {
             const productsByBrand = state.products.reduce((acc, p) => { const brand = p.brand || 'Sem Marca'; if (!acc[brand]) acc[brand] = []; acc[brand].push(p); return acc; }, {});
             const brandHtml = Object.entries(productsByBrand).map(([brand, products]) => `<div class="mb-8"><h3 class="text-xl font-bold text-slate-700 mb-4 border-b pb-2">${brand}</h3><div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">${products.map(pr => `
@@ -673,11 +663,62 @@
                 <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
                     <h2 class="text-3xl font-bold text-slate-800">Orçamentos</h2>
                      <div class="flex items-center gap-4">
-                        <input type="date" id="filter-date-orcamentos" value="${filterDate}" class="px-3 py-2 border rounded-md">
+                         <input type="date" id="filter-date-orcamentos" value="${filterDate}" class="px-3 py-2 border rounded-md">
                         <button id="btn-new-quote" class="bg-pink-400 text-white px-5 py-3 rounded-lg font-semibold hover:bg-pink-500 flex items-center"><i data-lucide="plus" class="w-5 h-5 mr-2"></i> Novo Orçamento</button>
                     </div>
                 </div>
                 <div class="bg-white rounded-lg shadow overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr><th class="p-4 text-left">Data</th><th class="p-4 text-left">Cliente</th><th class="p-4 text-center">Itens</th><th class="p-4 text-right">Total</th><th class="p-4 text-center">Ações</th></tr></thead><tbody>${quoteRows||`<tr><td colspan="5" class="p-4 text-center">Nenhum orçamento para esta data.</td></tr>`}</tbody></table></div></div>`;
+        }
+        
+        // ALTERADO - LÓGICA COMPLETAMENTE NOVA
+        function renderCobranca() {
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const pendingReceivables = state.receivables.filter(r => r.status === 'Pendente').sort((a,b) => a.dueDate.toDate() - b.dueDate.toDate());
+
+            const rows = pendingReceivables.map(r => {
+                const client = state.clients.find(c => c.id === r.clientId);
+                const isOverdue = r.dueDate.toDate() < today;
+                return `
+                    <tr class="border-b">
+                        <td class="p-4 ${isOverdue ? 'text-red-600 font-bold' : ''}">${client?.name || 'Cliente não encontrado'}</td>
+                        <td class="p-4 text-center">${r.installmentNumber}/${r.totalInstallments}</td>
+                        <td class="p-4 font-semibold ${isOverdue ? 'text-red-600' : ''}">${r.dueDate.toDate().toLocaleDateString('pt-BR')}</td>
+                        <td class="p-4 text-right font-semibold">R$ ${r.amount.toFixed(2).replace('.',',')}</td>
+                        <td class="p-4 text-center">
+                            <button data-receivable-id="${r.id}" data-client-id="${r.clientId}" class="btn-settle-receivable bg-green-500 text-white px-4 py-2 rounded-lg text-xs font-semibold hover:bg-green-600">Receber</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            return `<h2 class="text-3xl font-bold text-slate-800 mb-6">Controle de Cobrança (Contas a Receber)</h2><div class="bg-white rounded-lg shadow overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr><th class="p-4 text-left">Cliente</th><th class="p-4 text-center">Parcela</th><th class="p-4 text-left">Vencimento</th><th class="p-4 text-right">Valor</th><th class="p-4 text-center">Ação</th></tr></thead><tbody>${rows||'<tr><td colspan="5" class="p-4 text-center">Nenhuma conta a receber pendente.</td></tr>'}</tbody></table></div></div>`;
+        }
+        function renderOpcoes() {
+            const userRows = state.users.filter(u => u.username !== 'Admin').map(user => `<tr class="border-b"><td class="p-4 font-medium">${user.username}</td><td class="p-4">${user.role}</td><td class="p-4 flex gap-2"><button class="btn-edit-user p-2 text-blue-500" data-user-id="${user.id}"><i data-lucide="key" class="w-5 h-5"></i></button><button class="btn-delete-user p-2 text-red-500" data-user-id="${user.id}"><i data-lucide="trash-2" class="w-5 h-5"></i></button></td></tr>`).join('');
+            const onlineUserRows = state.onlineUsers.map(user => `<li class="flex items-center gap-2"><span class="w-2 h-2 bg-green-500 rounded-full"></span><span>${user.username}</span></li>`).join('');
+            return `
+                <h2 class="text-3xl font-bold text-slate-800 mb-6">Opções do Sistema</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="md:col-span-2 bg-white p-6 rounded-lg shadow">
+                        <h3 class="text-xl font-bold text-slate-800 mb-4">Gerenciar Usuários</h3>
+                        <button id="btn-new-user" class="w-full mb-4 bg-pink-400 text-white px-5 py-3 rounded-lg font-semibold hover:bg-pink-500 flex items-center justify-center"><i data-lucide="user-plus" class="w-5 h-5 mr-2"></i> Novo Usuário</button>
+                        <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr><th class="p-4 text-left">Usuário</th><th class="p-4 text-left">Função</th><th class="p-4 text-left">Ações</th></tr></thead><tbody>${userRows||'<tr><td colspan="3" class="p-4 text-center">Nenhum usuário.</td></tr>'}</tbody></table></div>
+                    </div>
+                    <div class="space-y-6">
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-xl font-bold text-slate-800 mb-4">Usuários Online</h3>
+                            <ul class="space-y-2">${onlineUserRows||'<li class="text-slate-500">Nenhum usuário online.</li>'}</ul>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-xl font-bold text-slate-800 mb-4">Backup Manual</h3>
+                            <p class="text-sm text-slate-500 mb-4">Baixe um arquivo com todos os dados do sistema. Guarde em um local seguro.</p>
+                            <button id="btn-manual-backup" class="w-full bg-blue-500 text-white px-5 py-3 rounded-lg font-semibold hover:bg-blue-600 flex items-center justify-center">
+                                <i data-lucide="download-cloud" class="w-5 h-5 mr-2"></i> Baixar Arquivo de Backup
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
         }
         
         function renderContasAPagar() {
@@ -685,20 +726,20 @@
             const paidExpenses = state.expenses.filter(e => e.status === 'Pago').sort((a,b) => b.paymentDate.toDate() - a.date.toDate());
 
              const pendingRows = pendingExpenses.map(exp => {
-                const category = state.expenseCategories.find(c => c.id === exp.categoryId);
-                const isFromPurchase = !!exp.purchaseOrderId;
-                return `<tr class="border-b">
-                    <td class="p-4">${exp.date.toDate().toLocaleDateString('pt-BR')}</td>
-                    <td class="p-4 font-semibold text-red-500">${exp.dueDate.toDate().toLocaleDateString('pt-BR')}</td>
-                    <td class="p-4 font-medium">${exp.description}</td>
-                    <td class="p-4 hidden sm:table-cell">${category?.name || 'N/A'}</td>
-                    <td class="p-4 text-right font-semibold text-red-600">R$ ${exp.amount.toFixed(2).replace('.',',')}</td>
-                    <td class="p-4 flex justify-center items-center gap-1">
-                        <button data-expense-id="${exp.id}" class="btn-settle-expense bg-green-500 text-white px-3 py-1 rounded-lg text-xs font-semibold hover:bg-green-600">Baixar</button>
-                        <button data-expense-id="${exp.id}" class="btn-edit-expense p-2 text-blue-500" ${isFromPurchase ? 'disabled title="Gerencie através do Pedido de Compra"' : ''}><i data-lucide="edit" class="w-4 h-4"></i></button>
-                        <button data-expense-id="${exp.id}" class="btn-delete-expense p-2 text-red-500" ${isFromPurchase ? 'disabled title="Gerencie através do Pedido de Compra"' : ''}><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                    </td>
-                </tr>`
+                 const category = state.expenseCategories.find(c => c.id === exp.categoryId);
+                 const isFromPurchase = !!exp.purchaseOrderId;
+                 return `<tr class="border-b">
+                     <td class="p-4">${exp.date.toDate().toLocaleDateString('pt-BR')}</td>
+                     <td class="p-4 font-semibold text-red-500">${exp.dueDate.toDate().toLocaleDateString('pt-BR')}</td>
+                     <td class="p-4 font-medium">${exp.description}</td>
+                     <td class="p-4 hidden sm:table-cell">${category?.name || 'N/A'}</td>
+                     <td class="p-4 text-right font-semibold text-red-600">R$ ${exp.amount.toFixed(2).replace('.',',')}</td>
+                     <td class="p-4 flex justify-center items-center gap-1">
+                         <button data-expense-id="${exp.id}" class="btn-settle-expense bg-green-500 text-white px-3 py-1 rounded-lg text-xs font-semibold hover:bg-green-600">Baixar</button>
+                         <button data-expense-id="${exp.id}" class="btn-edit-expense p-2 text-blue-500" ${isFromPurchase ? 'disabled title="Gerencie através do Pedido de Compra"' : ''}><i data-lucide="edit" class="w-4 h-4"></i></button>
+                         <button data-expense-id="${exp.id}" class="btn-delete-expense p-2 text-red-500" ${isFromPurchase ? 'disabled title="Gerencie através do Pedido de Compra"' : ''}><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                     </td>
+                 </tr>`
              }).join('');
 
             const paidRows = paidExpenses.map(exp => {
@@ -715,36 +756,36 @@
 
             return `
                  <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
-                    <h2 class="text-3xl font-bold text-slate-800">Contas a Pagar</h2>
-                    <div class="flex items-center gap-4">
-                        <button id="btn-manage-categories" class="bg-slate-500 text-white px-5 py-3 rounded-lg font-semibold hover:bg-slate-600 flex items-center">
-                            <i data-lucide="settings-2" class="w-5 h-5 mr-2"></i> Gerenciar Categorias
-                        </button>
-                        <button id="btn-new-expense" class="bg-pink-400 text-white px-5 py-3 rounded-lg font-semibold hover:bg-pink-500 flex items-center">
-                            <i data-lucide="plus" class="w-5 h-5 mr-2"></i> Nova Despesa
-                        </button>
-                    </div>
-                </div>
+                     <h2 class="text-3xl font-bold text-slate-800">Contas a Pagar</h2>
+                     <div class="flex items-center gap-4">
+                         <button id="btn-manage-categories" class="bg-slate-500 text-white px-5 py-3 rounded-lg font-semibold hover:bg-slate-600 flex items-center">
+                             <i data-lucide="settings-2" class="w-5 h-5 mr-2"></i> Gerenciar Categorias
+                         </button>
+                         <button id="btn-new-expense" class="bg-pink-400 text-white px-5 py-3 rounded-lg font-semibold hover:bg-pink-500 flex items-center">
+                             <i data-lucide="plus" class="w-5 h-5 mr-2"></i> Nova Despesa
+                         </button>
+                     </div>
+                 </div>
 
-                <div class="bg-white rounded-lg shadow overflow-hidden mb-8">
-                    <h3 class="text-xl font-bold p-4 bg-slate-100 border-b">Contas Pendentes</h3>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm">
-                            <thead><tr><th class="p-4 text-left">Data Lanç.</th><th class="p-4 text-left">Vencimento</th><th class="p-4 text-left">Descrição</th><th class="p-4 hidden sm:table-cell">Categoria</th><th class="p-4 text-right">Valor</th><th class="p-4 text-center">Ações</th></tr></thead>
-                            <tbody>${pendingRows||'<tr><td colspan="6" class="p-4 text-center">Nenhuma conta pendente.</td></tr>'}</tbody>
-                        </table>
-                    </div>
-                </div>
+                 <div class="bg-white rounded-lg shadow overflow-hidden mb-8">
+                     <h3 class="text-xl font-bold p-4 bg-slate-100 border-b">Contas Pendentes</h3>
+                     <div class="overflow-x-auto">
+                         <table class="w-full text-sm">
+                             <thead><tr><th class="p-4 text-left">Data Lanç.</th><th class="p-4 text-left">Vencimento</th><th class="p-4 text-left">Descrição</th><th class="p-4 hidden sm:table-cell">Categoria</th><th class="p-4 text-right">Valor</th><th class="p-4 text-center">Ações</th></tr></thead>
+                             <tbody>${pendingRows||'<tr><td colspan="6" class="p-4 text-center">Nenhuma conta pendente.</td></tr>'}</tbody>
+                         </table>
+                     </div>
+                 </div>
 
-                 <div class="bg-white rounded-lg shadow overflow-hidden">
-                    <h3 class="text-xl font-bold p-4 bg-slate-100 border-b">Contas Pagas</h3>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm">
-                            <thead><tr><th class="p-4 text-left">Data Lanç.</th><th class="p-4 text-left">Vencimento</th><th class="p-4 text-left">Descrição</th><th class="p-4 hidden sm:table-cell">Categoria</th><th class="p-4 text-right">Valor</th><th class="p-4 text-center">Status</th></tr></thead>
-                            <tbody>${paidRows||'<tr><td colspan="6" class="p-4 text-center">Nenhuma conta paga.</td></tr>'}</tbody>
-                        </table>
-                    </div>
-                </div>
+                  <div class="bg-white rounded-lg shadow overflow-hidden">
+                     <h3 class="text-xl font-bold p-4 bg-slate-100 border-b">Contas Pagas</h3>
+                     <div class="overflow-x-auto">
+                         <table class="w-full text-sm">
+                             <thead><tr><th class="p-4 text-left">Data Lanç.</th><th class="p-4 text-left">Vencimento</th><th class="p-4 text-left">Descrição</th><th class="p-4 hidden sm:table-cell">Categoria</th><th class="p-4 text-right">Valor</th><th class="p-4 text-center">Status</th></tr></thead>
+                             <tbody>${paidRows||'<tr><td colspan="6" class="p-4 text-center">Nenhuma conta paga.</td></tr>'}</tbody>
+                         </table>
+                     </div>
+                 </div>
             `;
         }
 
@@ -786,6 +827,7 @@
         function showNewProductModal() { openModal(getFormProduct(), 'max-w-lg'); }
         function showEditProductModal(product) { openModal(getFormProduct(product), 'max-w-lg'); }
 
+        // ALTERADO - ADICIONA DATA DE VALIDADE
         function getFormProduct(product = null) {
             const validityDateValue = product?.validityDate ? product.validityDate.toDate().toISOString().slice(0, 10) : '';
             return `
@@ -809,6 +851,7 @@
             `;
         }
 
+        // ALTERADO - ADICIONA OPÇÃO DE PARCELAMENTO
         function getTransactionForm(type = 'quote', transaction = null) {
             const isSale = type === 'sale';
             const title = `${transaction ? 'Editar' : 'Nova'} ${isSale ? 'Venda' : 'Orçamento'}`;
@@ -888,7 +931,7 @@
         function getExpenseForm(expense = null) {
             const categoryOptions = state.expenseCategories.map(c => `<option value="${c.id}" ${expense?.categoryId === c.id ? 'selected' : ''}>${c.name}</option>`).join('');
             const launchDateValue = expense ? expense.date.toDate().toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
-            const dueDateValue = expense?.dueDate ? expense.dueDate.toDate().toISOString().slice(0, 10) : '';
+            const dueDateValue = expense ? expense.dueDate.toDate().toISOString().slice(0, 10) : '';
 
             return `
                 <form id="form-expense">
@@ -931,8 +974,8 @@
             if (id) {
                 await updateDoc(doc(db, dbPaths.clients, id), clientData);
             } else {
-                clientData.latePaymentsCount = 0; 
-                await addDoc(collection(db, dbPaths.clients), { ...clientData, createdAt: new Date() });
+                clientData.latePaymentsCount = 0; // Inicializa contador de atrasos
+                await addDoc(collection(db, dbPaths.clients), clientData);
             }
             closeModal();
         }
@@ -943,6 +986,7 @@
             }
         }
         
+        // ALTERADO - ADICIONA DATA DE VALIDADE
         async function handleProductForm(e) {
             e.preventDefault();
             const formData = new FormData(e.target);
@@ -1005,6 +1049,7 @@
             return true;
         }
 
+        // ALTERADO - LÓGICA DE PARCELAMENTO E BLOQUEIO DE COMPRA
         async function handleTransaction(e, type) {
             e.preventDefault();
             const errorEl = document.getElementById('transaction-error');
@@ -1016,10 +1061,12 @@
             const discountPercent = parseFloat(document.getElementById('discount-percent').value) || 0;
             const discountValue = parseFloat(document.getElementById('discount-value').value) || 0;
             const installmentsCount = parseInt(formData.get('installmentsCount') || 1);
+            const isSale = type === 'sale';
 
-            if (type === 'sale' && paymentMethod === 'A Prazo' && clientId === 'consumidor') { errorEl.textContent = 'Vendas "A Prazo" exigem um cliente cadastrado.'; errorEl.classList.remove('hidden'); return; }
+            if (isSale && paymentMethod === 'A Prazo' && clientId === 'consumidor') { errorEl.textContent = 'Vendas "A Prazo" exigem um cliente cadastrado.'; errorEl.classList.remove('hidden'); return; }
             
-            if (type === 'sale' && paymentMethod === 'A Prazo' && !id) {
+            // NOVO: Bloqueio de compra a prazo para clientes com pendências
+            if (isSale && paymentMethod === 'A Prazo' && !id) { // Só checa em novas vendas
                 const today = new Date();
                 today.setHours(0,0,0,0);
                 const hasOverdue = state.receivables.some(r => r.clientId === clientId && r.status === 'Pendente' && r.dueDate.toDate() < today);
@@ -1045,7 +1092,7 @@
             const total = subtotal - (subtotal * (discountPercent / 100)) - discountValue;
             const transactionData = { clientId, items, total, subtotal, discountPercent, discountValue, date: new Date(), sellerId: state.currentUser.id, sellerName: state.currentUser.username };
 
-            if (type === 'sale') {
+            if (isSale) {
                 transactionData.paymentMethod = paymentMethod;
                 if (paymentMethod === 'A Prazo') {
                     transactionData.installmentsCount = installmentsCount;
@@ -1057,36 +1104,39 @@
             try {
                 const batch = writeBatch(db);
                 let saleId = id;
-                const saleRef = id ? doc(db, dbPath, id) : doc(collection(db, dbPath));
-                saleId = saleRef.id;
+                let saleDocRef;
 
-                if(id) { 
-                    batch.update(saleRef, transactionData);
-                } else {
-                    batch.set(saleRef, transactionData);
+                if(id) { // Editando (lógica simplificada, não altera parcelas já criadas)
+                    saleDocRef = doc(db, dbPath, id);
+                    batch.update(saleDocRef, transactionData);
+                } else { // Criando
+                    saleDocRef = doc(collection(db, dbPath));
+                    saleId = saleDocRef.id;
+                    batch.set(saleDocRef, transactionData);
                 }
                 
-                if (type === 'sale' && !id) {
+                if (isSale && !id) { // Apenas para novas vendas
                     for (const item of items) {
                         const productRef = doc(db, dbPaths.products, item.productId);
                         const product = state.products.find(p => p.id === item.productId);
                         batch.update(productRef, { quantity: product.quantity - item.quantity });
                     }
-                   
+                    
                     if (paymentMethod === 'A Prazo') {
                         const installmentAmount = total / installmentsCount;
                         const clientName = state.clients.find(c => c.id === clientId)?.name || '';
                         for (let i = 1; i <= installmentsCount; i++) {
                             const dueDate = new Date();
-                            dueDate.setDate(1); // Para evitar problemas com meses de tamanhos diferentes
-                            dueDate.setMonth(dueDate.getMonth() + i);
+                            dueDate.setDate(dueDate.getDate() + 30 * i); // Vencimento a cada 30 dias
+                            dueDate.setHours(0,0,0,0); // Garante que a data não tenha hora
                             const receivableData = {
                                 clientId, clientName, saleId,
                                 amount: installmentAmount,
                                 installmentNumber: i,
                                 totalInstallments: installmentsCount,
                                 dueDate: dueDate,
-                                status: 'Pendente'
+                                status: 'Pendente',
+                                paymentDate: null
                             };
                             batch.set(doc(collection(db, dbPaths.receivables)), receivableData);
                         }
@@ -1108,6 +1158,7 @@
         }
         
         async function handleDeleteTransaction(id, type) {
+            // Deletar uma venda a prazo deveria deletar as contas a receber. Lógica complexa omitida por simplicidade.
             if (confirm(`Tem certeza que deseja excluir? Se for uma venda a prazo, as parcelas NÃO serão removidas.`)) {
                 const dbPath = type === 'sale' ? dbPaths.sales : dbPaths.quotes;
                 await deleteDoc(doc(db, dbPath, id));
@@ -1245,12 +1296,12 @@
              batch.update(orderRef, { status: 'Recebido' });
 
              for(const item of order.items) {
-                const productRef = doc(db, dbPaths.products, item.productId);
-                const product = state.products.find(p => p.id === item.productId);
-                if(product) {
-                    const newQuantity = (product.quantity || 0) + item.quantity;
-                    batch.update(productRef, { quantity: newQuantity });
-                }
+                 const productRef = doc(db, dbPaths.products, item.productId);
+                 const product = state.products.find(p => p.id === item.productId);
+                 if(product) {
+                     const newQuantity = (product.quantity || 0) + item.quantity;
+                     batch.update(productRef, { quantity: newQuantity });
+                 }
              }
              await batch.commit();
         }
@@ -1291,6 +1342,7 @@
             }
         }
         
+        // NOVO - LÓGICA PARA BAIXAR CONTA A RECEBER E COMPUTAR ATRASO
         async function handleSettleReceivable(receivableId, clientId) {
             if (confirm("Confirmar o recebimento desta parcela?")) {
                 const receivable = state.receivables.find(r => r.id === receivableId);
@@ -1307,10 +1359,14 @@
 
                 if (isLate) {
                     const clientRef = doc(db, dbPaths.clients, clientId);
-                    const clientDoc = await getDoc(clientRef);
-                    if (clientDoc.exists()) {
-                        const currentLateCount = clientDoc.data().latePaymentsCount || 0;
-                        await updateDoc(clientRef, { latePaymentsCount: currentLateCount + 1 });
+                    try {
+                         const clientDoc = await getDoc(clientRef);
+                        if (clientDoc.exists()) {
+                            const currentLateCount = clientDoc.data().latePaymentsCount || 0;
+                            await updateDoc(clientRef, { latePaymentsCount: currentLateCount + 1 });
+                        }
+                    } catch (error) {
+                        console.error("Erro ao atualizar contador de atrasos do cliente:", error)
                     }
                 }
             }
@@ -1364,7 +1420,6 @@
             document.getElementById('btn-new-quote')?.addEventListener('click', () => openModal(getTransactionForm('quote'), 'max-w-2xl'));
             document.getElementById('btn-goto-cobranca')?.addEventListener('click', () => navigateTo('cobranca'));
             document.getElementById('btn-manual-backup')?.addEventListener('click', handleManualBackup);
-            document.getElementById('btn-back-to-clients')?.addEventListener('click', () => navigateTo('clientes'));
 
             document.getElementById('filter-date-vendas')?.addEventListener('change', render);
             document.getElementById('filter-date-orcamentos')?.addEventListener('change', render);
@@ -1372,7 +1427,9 @@
             document.getElementById('btn-new-purchase-order')?.addEventListener('click', () => openModal(getPurchaseOrderForm(), 'max-w-2xl'));
             document.getElementById('btn-new-expense')?.addEventListener('click', () => openModal(getExpenseForm(), 'max-w-lg'));
             document.getElementById('btn-manage-categories')?.addEventListener('click', showManageCategoriesModal);
-            
+            document.getElementById('btn-back-to-clients')?.addEventListener('click', () => navigateTo('clientes'));
+
+
             document.querySelectorAll('.btn-stock-update').forEach(btn => btn.addEventListener('click', () => handleStockUpdate(btn.dataset.productId, btn.dataset.action)));
             document.querySelectorAll('.btn-view-profile').forEach(btn => btn.addEventListener('click', () => navigateTo('clientProfile', btn.dataset.clientId)));
             document.querySelectorAll('.btn-settle-receivable').forEach(btn => btn.addEventListener('click', () => handleSettleReceivable(btn.dataset.receivableId, btn.dataset.clientId)));
@@ -1470,7 +1527,7 @@
             const product = state.products.find(p => p.id === productId);
             if (!product || document.querySelector(`.purchase-item[data-product-id="${productId}"]`)) return;
 
-             const itemHtml = `<div class="purchase-item flex items-center space-x-2 p-2 bg-slate-50 rounded" data-product-id="${product.id}" data-cost="${product.cost}" data-product-name="${product.name}"><p class="flex-grow">${product.name}</p><input type="number" value="${quantity}" min="1" class="w-20 text-center border rounded-md p-1 purchase-item-quantity"><p class="w-24 text-right font-semibold purchase-item-subtotal">R$ ${parseFloat(product.cost * quantity).toFixed(2)}</p><button type="button" class="btn-remove-purchase-item text-red-500 hover:text-red-700 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>`;
+             const itemHtml = `<div class="purchase-item flex items-center space-x-2 p-2 bg-slate-50 rounded" data-product-id="${product.id}" data-cost="${product.cost || 0}" data-product-name="${product.name}"><p class="flex-grow">${product.name}</p><input type="number" value="${quantity}" min="1" class="w-20 text-center border rounded-md p-1 purchase-item-quantity"><p class="w-24 text-right font-semibold purchase-item-subtotal">R$ ${parseFloat((product.cost || 0) * quantity).toFixed(2)}</p><button type="button" class="btn-remove-purchase-item text-red-500 hover:text-red-700 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>`;
             document.getElementById('purchase-items-container').insertAdjacentHTML('beforeend', itemHtml);
             updatePurchaseTotal();
             lucide.createIcons();
@@ -1507,12 +1564,15 @@
             const paymentMethodSelect = document.querySelector('select[name="paymentMethod"]');
             if (paymentMethodSelect) {
                 const installmentsContainer = document.getElementById('installments-container');
-                const handler = () => {
-                    if (paymentMethodSelect.value === 'A Prazo') installmentsContainer.classList.remove('hidden');
-                    else installmentsContainer.classList.add('hidden');
-                };
-                paymentMethodSelect.addEventListener('change', handler);
-                handler();
+                paymentMethodSelect.addEventListener('change', () => {
+                    if (paymentMethodSelect.value === 'A Prazo') {
+                        installmentsContainer.classList.remove('hidden');
+                    } else {
+                        installmentsContainer.classList.add('hidden');
+                    }
+                });
+                // Trigger change on modal open
+                if (paymentMethodSelect.value === 'A Prazo') installmentsContainer.classList.remove('hidden');
             }
         }
         
@@ -1520,7 +1580,7 @@
             let subtotal = 0;
             document.querySelectorAll('.transaction-item').forEach(item => {
                 const price = parseFloat(item.dataset.price);
-                const quantity = parseInt(item.querySelector('.transaction-item-quantity').value) || 0;
+                const quantity = parseInt(item.querySelector('.transaction-item-quantity').value);
                 const itemSubtotal = price * quantity;
                 item.querySelector('.transaction-item-subtotal').textContent = `R$ ${itemSubtotal.toFixed(2)}`;
                 subtotal += itemSubtotal;
@@ -1537,7 +1597,7 @@
             let total = 0;
             document.querySelectorAll('.purchase-item').forEach(item => {
                 const cost = parseFloat(item.dataset.cost);
-                const quantity = parseInt(item.querySelector('.purchase-item-quantity').value) || 0;
+                const quantity = parseInt(item.querySelector('.purchase-item-quantity').value);
                 const itemSubtotal = cost * quantity;
                 item.querySelector('.purchase-item-subtotal').textContent = `R$ ${itemSubtotal.toFixed(2)}`;
                 total += itemSubtotal;
