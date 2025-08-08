@@ -26,7 +26,6 @@
         #main-nav::-webkit-scrollbar { height: 4px; }
         #main-nav::-webkit-scrollbar-thumb { background: #f472b6; border-radius: 10px; }
         #main-nav::-webkit-scrollbar-track { background: #f1f5f9; }
-        /* Estilo para botões desabilitados */
         button:disabled {
             background-color: #cbd5e1;
             cursor: not-allowed;
@@ -234,6 +233,9 @@
                 updateUserSession();
                 setInterval(updateUserSession, 30000);
 
+                // NOVO - VERIFICA CONTAS A VENCER APÓS LOGIN
+                setTimeout(checkUpcomingBills, 3000); // Dá um tempo para os dados carregarem
+
                 renderNav();
                 lucide.createIcons();
                 navigateTo('dashboard');
@@ -364,10 +366,14 @@
                 </div>
             `;
         }
+        
+        // ALTERADO - CALCULA DESPESAS APENAS DE CONTAS PAGAS
         function renderFinanceiro() {
+            const paidExpenses = state.expenses.filter(e => e.status === 'Pago');
+            
             const totalRevenue = state.sales.reduce((sum, sale) => sum + sale.total, 0);
             const totalCostOfGoods = state.sales.flatMap(sale => sale.items).reduce((sum, item) => sum + ((item.cost || 0) * item.quantity), 0);
-            const totalExpenses = state.expenses.reduce((sum, expense) => sum + expense.amount, 0);
+            const totalExpenses = paidExpenses.reduce((sum, expense) => sum + expense.amount, 0); // USA paidExpenses
             const netProfit = totalRevenue - totalCostOfGoods - totalExpenses;
             const accountsReceivable = state.clients.reduce((sum, client) => sum + (client.debt || 0), 0);
             
@@ -384,21 +390,24 @@
                 <h2 class="text-3xl font-bold text-slate-800 mb-6">Painel Financeiro</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <div class="bg-white p-6 rounded-lg shadow"><p class="text-sm text-slate-500">Receita Bruta</p><p class="text-3xl font-bold text-blue-600">R$ ${totalRevenue.toFixed(2).replace('.', ',')}</p></div>
-                    <div class="bg-white p-6 rounded-lg shadow"><p class="text-sm text-slate-500">Despesas Totais</p><p class="text-3xl font-bold text-red-500">R$ ${totalExpenses.toFixed(2).replace('.', ',')}</p></div>
+                    <div class="bg-white p-6 rounded-lg shadow"><p class="text-sm text-slate-500">Despesas Pagas</p><p class="text-3xl font-bold text-red-500">R$ ${totalExpenses.toFixed(2).replace('.', ',')}</p></div>
                     <div class="bg-white p-6 rounded-lg shadow"><p class="text-sm text-slate-500">Lucro Líquido</p><p class="text-3xl font-bold text-green-600">R$ ${netProfit.toFixed(2).replace('.', ',')}</p></div>
                     <div class="bg-white p-6 rounded-lg shadow"><p class="text-sm text-slate-500">Contas a Receber</p><p class="text-3xl font-bold text-orange-500">R$ ${accountsReceivable.toFixed(2).replace('.', ',')}</p></div>
                 </div>
                 <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
                     <div class="lg:col-span-3 bg-white p-6 rounded-lg shadow"><h3 class="text-xl font-bold text-slate-800 mb-4">Relatório de Vendedores</h3><div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr><th class="p-4 text-left">Vendedor</th><th class="p-4 text-center">Nº Vendas</th><th class="p-4 text-right">Total Vendido</th></tr></thead><tbody>${sellerRows || '<tr><td colspan="3" class="p-4 text-center">Nenhuma venda registrada.</td></tr>'}</tbody></table></div></div>
-                    <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow"><h3 class="text-xl font-bold text-slate-800 mb-4">Gráfico de Despesas</h3><canvas id="expenseChart"></canvas></div>
+                    <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow"><h3 class="text-xl font-bold text-slate-800 mb-4">Gráfico de Despesas (Pagas)</h3><canvas id="expenseChart"></canvas></div>
                 </div>
             `;
         }
+        
+        // ALTERADO - USA APENAS CONTAS PAGAS PARA O GRÁFICO
         function renderExpenseChart() {
             const ctx = document.getElementById('expenseChart');
-            if (!ctx || state.expenses.length === 0) return;
+            const paidExpenses = state.expenses.filter(e => e.status === 'Pago');
+            if (!ctx || paidExpenses.length === 0) return;
 
-            const expensesByCategory = state.expenses.reduce((acc, expense) => {
+            const expensesByCategory = paidExpenses.reduce((acc, expense) => {
                 const categoryName = state.expenseCategories.find(c => c.id === expense.categoryId)?.name || 'Sem Categoria';
                 if (!acc[categoryName]) {
                     acc[categoryName] = 0;
@@ -459,7 +468,6 @@
             return `<div class="flex justify-between items-center mb-6 flex-wrap gap-4"><h2 class="text-3xl font-bold text-slate-800">Produtos</h2><button id="btn-new-product" class="bg-pink-400 text-white px-5 py-3 rounded-lg font-semibold hover:bg-pink-500 flex items-center"><i data-lucide="plus" class="w-5 h-5 mr-2"></i> Novo Produto</button></div>${state.products.length > 0 ? brandHtml : '<div class="bg-white p-6 rounded-lg shadow text-center">Nenhum produto cadastrado.</div>'}`;
         }
         
-        // ALTERADO - ADICIONADO BOTÕES DE EDITAR/EXCLUIR
         function renderCompras() {
             const pendingOrders = state.purchaseOrders.filter(p => p.status === 'Pendente');
             const receivedOrders = state.purchaseOrders.filter(p => p.status === 'Recebido');
@@ -623,20 +631,37 @@
                 </div>`;
         }
         
-        // ALTERADO - ADICIONADO BOTÕES DE EDITAR/EXCLUIR
+        // ALTERADO - SEPARAÇÃO DE CONTAS PENDENTES E PAGAS
         function renderContasAPagar() {
-             const expenseRows = state.expenses.sort((a,b) => b.date.toDate() - a.date.toDate()).map(exp => {
+            const pendingExpenses = state.expenses.filter(e => e.status === 'Pendente').sort((a,b) => a.dueDate.toDate() - b.dueDate.toDate());
+            const paidExpenses = state.expenses.filter(e => e.status === 'Pago').sort((a,b) => b.paymentDate.toDate() - a.date.toDate());
+
+             const pendingRows = pendingExpenses.map(exp => {
                 const category = state.expenseCategories.find(c => c.id === exp.categoryId);
                 const isFromPurchase = !!exp.purchaseOrderId;
-                return `<tr class="border-b ${isFromPurchase ? 'bg-slate-50 text-slate-500' : ''}">
+                return `<tr class="border-b">
                     <td class="p-4">${exp.date.toDate().toLocaleDateString('pt-BR')}</td>
+                    <td class="p-4 font-semibold text-red-500">${exp.dueDate.toDate().toLocaleDateString('pt-BR')}</td>
                     <td class="p-4 font-medium">${exp.description}</td>
                     <td class="p-4 hidden sm:table-cell">${category?.name || 'N/A'}</td>
                     <td class="p-4 text-right font-semibold text-red-600">R$ ${exp.amount.toFixed(2).replace('.',',')}</td>
                     <td class="p-4 flex justify-center items-center gap-1">
+                        <button data-expense-id="${exp.id}" class="btn-settle-expense bg-green-500 text-white px-3 py-1 rounded-lg text-xs font-semibold hover:bg-green-600">Baixar</button>
                         <button data-expense-id="${exp.id}" class="btn-edit-expense p-2 text-blue-500" ${isFromPurchase ? 'disabled title="Gerencie através do Pedido de Compra"' : ''}><i data-lucide="edit" class="w-4 h-4"></i></button>
                         <button data-expense-id="${exp.id}" class="btn-delete-expense p-2 text-red-500" ${isFromPurchase ? 'disabled title="Gerencie através do Pedido de Compra"' : ''}><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                     </td>
+                </tr>`
+             }).join('');
+
+            const paidRows = paidExpenses.map(exp => {
+                const category = state.expenseCategories.find(c => c.id === exp.categoryId);
+                return `<tr class="border-b bg-slate-50 text-slate-500">
+                    <td class="p-4">${exp.date.toDate().toLocaleDateString('pt-BR')}</td>
+                    <td class="p-4">${exp.dueDate.toDate().toLocaleDateString('pt-BR')}</td>
+                    <td class="p-4 font-medium">${exp.description}</td>
+                    <td class="p-4 hidden sm:table-cell">${category?.name || 'N/A'}</td>
+                    <td class="p-4 text-right font-semibold">R$ ${exp.amount.toFixed(2).replace('.',',')}</td>
+                    <td class="p-4 text-center text-green-600 font-bold">Pago em ${exp.paymentDate.toDate().toLocaleDateString('pt-BR')}</td>
                 </tr>`
              }).join('');
 
@@ -652,11 +677,23 @@
                         </button>
                     </div>
                 </div>
-                <div class="bg-white rounded-lg shadow overflow-hidden">
+
+                <div class="bg-white rounded-lg shadow overflow-hidden mb-8">
+                    <h3 class="text-xl font-bold p-4 bg-slate-100 border-b">Contas Pendentes</h3>
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm">
-                            <thead><tr><th class="p-4 text-left">Data</th><th class="p-4 text-left">Descrição</th><th class="p-4 hidden sm:table-cell">Categoria</th><th class="p-4 text-right">Valor</th><th class="p-4 text-center">Ações</th></tr></thead>
-                            <tbody>${expenseRows||'<tr><td colspan="5" class="p-4 text-center">Nenhuma despesa registrada.</td></tr>'}</tbody>
+                            <thead><tr><th class="p-4 text-left">Data Lanç.</th><th class="p-4 text-left">Vencimento</th><th class="p-4 text-left">Descrição</th><th class="p-4 hidden sm:table-cell">Categoria</th><th class="p-4 text-right">Valor</th><th class="p-4 text-center">Ações</th></tr></thead>
+                            <tbody>${pendingRows||'<tr><td colspan="6" class="p-4 text-center">Nenhuma conta pendente.</td></tr>'}</tbody>
+                        </table>
+                    </div>
+                </div>
+
+                 <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <h3 class="text-xl font-bold p-4 bg-slate-100 border-b">Contas Pagas</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead><tr><th class="p-4 text-left">Data Lanç.</th><th class="p-4 text-left">Vencimento</th><th class="p-4 text-left">Descrição</th><th class="p-4 hidden sm:table-cell">Categoria</th><th class="p-4 text-right">Valor</th><th class="p-4 text-center">Status</th></tr></thead>
+                            <tbody>${paidRows||'<tr><td colspan="6" class="p-4 text-center">Nenhuma conta paga.</td></tr>'}</tbody>
                         </table>
                     </div>
                 </div>
@@ -780,7 +817,6 @@
             `);
         }
         
-        // ALTERADO - SUPORTE A EDIÇÃO
         function getPurchaseOrderForm(order = null) {
             const productOptions = state.products.map(p => `<option value="${p.id}">${p.name} (Custo: R$ ${parseFloat(p.cost || 0).toFixed(2)})</option>`).join('');
             return `
@@ -798,10 +834,12 @@
             `;
         }
 
-        // ALTERADO - SUPORTE A EDIÇÃO
+        // ALTERADO - ADICIONADO CAMPO DE DATA DE VENCIMENTO
         function getExpenseForm(expense = null) {
             const categoryOptions = state.expenseCategories.map(c => `<option value="${c.id}" ${expense?.categoryId === c.id ? 'selected' : ''}>${c.name}</option>`).join('');
-            const dateValue = expense ? expense.date.toDate().toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
+            const launchDateValue = expense ? expense.date.toDate().toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
+            const dueDateValue = expense ? expense.dueDate.toDate().toISOString().slice(0, 10) : '';
+
             return `
                 <form id="form-expense">
                     <input type="hidden" name="id" value="${expense?.id || ''}">
@@ -810,7 +848,10 @@
                         <div><label class="block text-sm font-medium">Descrição*</label><input type="text" name="description" required value="${expense?.description || ''}" class="w-full mt-1 px-3 py-2 border rounded-md"></div>
                         <div><label class="block text-sm font-medium">Valor (R$)*</label><input type="number" name="amount" required min="0.01" step="0.01" value="${expense?.amount || ''}" class="w-full mt-1 px-3 py-2 border rounded-md"></div>
                         <div><label class="block text-sm font-medium">Categoria*</label><select name="categoryId" required class="w-full mt-1 px-3 py-2 border rounded-md"><option value="">Selecione...</option>${categoryOptions}</select></div>
-                        <div><label class="block text-sm font-medium">Data*</label><input type="date" name="date" required value="${dateValue}" class="w-full mt-1 px-3 py-2 border rounded-md"></div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><label class="block text-sm font-medium">Data Lançamento*</label><input type="date" name="date" required value="${launchDateValue}" class="w-full mt-1 px-3 py-2 border rounded-md"></div>
+                            <div><label class="block text-sm font-medium">Data Vencimento*</label><input type="date" name="dueDate" required value="${dueDateValue}" class="w-full mt-1 px-3 py-2 border rounded-md"></div>
+                        </div>
                     </div>
                     <div class="mt-6 flex justify-end space-x-3"><button type="button" id="btn-cancel-modal" class="px-5 py-3 bg-slate-200 rounded-lg">Cancelar</button><button type="submit" class="px-5 py-3 bg-pink-400 text-white rounded-lg">${expense ? 'Salvar Alterações' : 'Salvar Despesa'}</button></div>
                 </form>
@@ -923,7 +964,7 @@
             const errorEl = document.getElementById('transaction-error');
             errorEl.classList.add('hidden');
             const formData = new FormData(e.target);
-            const id = formData.get('id'); // ID para edição
+            const id = formData.get('id');
             const clientId = formData.get('clientId');
             const paymentMethod = formData.get('paymentMethod');
             const discountPercent = parseFloat(document.getElementById('discount-percent').value) || 0;
@@ -1027,7 +1068,6 @@
             }
         }
 
-        // ALTERADO - LÓGICA DE EDIÇÃO E VINCULO COM DESPESA
         async function handlePurchaseOrderForm(e) {
             e.preventDefault();
             const formData = new FormData(e.target);
@@ -1061,31 +1101,32 @@
                 const expenseDesc = `Compra de mercadorias - Fornecedor: ${supplier}`;
                 let category = state.expenseCategories.find(c => c.name.toLowerCase() === 'compra de mercadorias');
 
-                if (!category) { // Se a categoria não existir, cria
+                if (!category) {
                     const catRef = doc(collection(db, dbPaths.expenseCategories));
                     const newCategoryData = { name: 'Compra de Mercadorias' };
                     batch.set(catRef, newCategoryData);
                     category = { id: catRef.id, ...newCategoryData };
                 }
 
-                if (id) { // Editando
+                if (id) {
                     const orderRef = doc(db, dbPaths.purchaseOrders, id);
                     batch.update(orderRef, purchaseOrderData);
 
-                    // Encontra e atualiza a despesa vinculada
                     const expenseQuery = query(collection(db, dbPaths.expenses), where("purchaseOrderId", "==", id));
                     const expenseSnapshot = await getDocs(expenseQuery);
                     if (!expenseSnapshot.empty) {
                         const expenseDoc = expenseSnapshot.docs[0];
                         batch.update(expenseDoc.ref, { amount: totalCost, description: expenseDesc });
                     }
-                } else { // Criando
+                } else {
                     const purchaseOrderRef = doc(collection(db, dbPaths.purchaseOrders));
                     batch.set(purchaseOrderRef, purchaseOrderData);
 
                     const expenseData = {
                         description: expenseDesc, amount: totalCost, categoryId: category.id,
-                        date: new Date(), purchaseOrderId: purchaseOrderRef.id // VINCULO IMPORTANTE
+                        date: new Date(), purchaseOrderId: purchaseOrderRef.id, 
+                        status: 'Pendente', // NOVO: Despesa de compra também começa pendente
+                        dueDate: new Date() // NOVO: Vencimento padrão para o mesmo dia
                     };
                     const expenseRef = doc(collection(db, dbPaths.expenses));
                     batch.set(expenseRef, expenseData);
@@ -1100,25 +1141,20 @@
             }
         }
         
-        // NOVO
         async function handleDeletePurchaseOrder(orderId) {
             if (!confirm('Tem certeza que deseja excluir este pedido de compra? A despesa associada também será excluída.')) return;
             
             try {
                 const batch = writeBatch(db);
-
-                // 1. Deleta o pedido
                 const orderRef = doc(db, dbPaths.purchaseOrders, orderId);
                 batch.delete(orderRef);
 
-                // 2. Encontra e deleta a despesa vinculada
                 const expenseQuery = query(collection(db, dbPaths.expenses), where("purchaseOrderId", "==", orderId));
                 const expenseSnapshot = await getDocs(expenseQuery);
                 if (!expenseSnapshot.empty) {
                     const expenseDoc = expenseSnapshot.docs[0];
                     batch.delete(expenseDoc.ref);
                 }
-
                 await batch.commit();
             } catch(err) {
                 console.error("Erro ao excluir pedido:", err);
@@ -1146,7 +1182,7 @@
              await batch.commit();
         }
 
-        // ALTERADO - LÓGICA DE EDIÇÃO
+        // ALTERADO - ADICIONA STATUS E DATA DE VENCIMENTO
         async function handleExpenseForm(e) {
             e.preventDefault();
             const formData = new FormData(e.target);
@@ -1155,21 +1191,32 @@
                 description: formData.get('description'),
                 amount: parseFloat(formData.get('amount')),
                 categoryId: formData.get('categoryId'),
-                date: new Date(formData.get('date') + 'T12:00:00')
+                date: new Date(formData.get('date') + 'T12:00:00'),
+                dueDate: new Date(formData.get('dueDate') + 'T12:00:00')
             };
 
             if (id) {
                 await updateDoc(doc(db, dbPaths.expenses, id), expenseData);
             } else {
+                expenseData.status = 'Pendente'; // status inicial
                 await addDoc(collection(db, dbPaths.expenses), expenseData);
             }
             closeModal();
         }
         
-        // NOVO
         async function handleDeleteExpense(expenseId) {
             if (confirm("Tem certeza que deseja excluir esta despesa?")) {
                 await deleteDoc(doc(db, dbPaths.expenses, expenseId));
+            }
+        }
+        
+        // NOVO - FUNÇÃO PARA BAIXAR UMA CONTA
+        async function handleSettleExpense(expenseId) {
+            if (confirm("Confirmar o pagamento (baixa) desta conta?")) {
+                await updateDoc(doc(db, dbPaths.expenses, expenseId), {
+                    status: 'Pago',
+                    paymentDate: new Date()
+                });
             }
         }
 
@@ -1186,6 +1233,29 @@
             if (confirm('Tem certeza? Se houver despesas nesta categoria, elas ficarão como "Sem Categoria".')) {
                 await deleteDoc(doc(db, dbPaths.expenseCategories, id));
                 showManageCategoriesModal();
+            }
+        }
+        
+        // NOVO - VERIFICADOR DE CONTAS A VENCER
+        function checkUpcomingBills() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Zera a hora para comparar apenas a data
+
+            const upcomingBills = state.expenses.filter(exp => {
+                if (exp.status !== 'Pendente' || !exp.dueDate) return false;
+                const dueDate = exp.dueDate.toDate();
+                dueDate.setHours(0,0,0,0);
+                const timeDiff = dueDate.getTime() - today.getTime();
+                const dayDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+                return dayDiff >= 0 && dayDiff <= 2;
+            });
+
+            if (upcomingBills.length > 0) {
+                let message = `LEMBRETE DE CONTAS A PAGAR:\n\n`;
+                upcomingBills.forEach(bill => {
+                    message += `- ${bill.description} (R$ ${bill.amount.toFixed(2)}) vence em ${bill.dueDate.toDate().toLocaleDateString('pt-BR')}.\n`;
+                });
+                alert(message);
             }
         }
 
@@ -1207,7 +1277,6 @@
             document.getElementById('btn-new-expense')?.addEventListener('click', () => openModal(getExpenseForm(), 'max-w-lg'));
             document.getElementById('btn-manage-categories')?.addEventListener('click', showManageCategoriesModal);
 
-
             document.querySelectorAll('.btn-stock-update').forEach(btn => btn.addEventListener('click', () => handleStockUpdate(btn.dataset.productId, btn.dataset.action)));
             document.querySelectorAll('.btn-receive-payment').forEach(btn => btn.addEventListener('click', () => showReceivePaymentModal(btn.dataset.clientId, btn.dataset.clientName, btn.dataset.clientDebt)));
             document.querySelectorAll('.btn-edit-client').forEach(btn => btn.addEventListener('click', () => showEditClientModal(state.clients.find(c => c.id === btn.dataset.clientId))));
@@ -1223,8 +1292,7 @@
 
             document.querySelectorAll('.btn-convert-quote').forEach(btn => btn.addEventListener('click', () => {
                 state.quoteToConvert = state.quotes.find(q => q.id === btn.dataset.quoteId);
-                const saleModalContent = getTransactionForm('sale');
-                openModal(saleModalContent, 'max-w-2xl');
+                openModal(getTransactionForm('sale'), 'max-w-2xl');
                 if (state.quoteToConvert) {
                     state.quoteToConvert.items.forEach(item => addTransactionItem(item.productId, item.quantity));
                     document.getElementById('discount-percent').value = state.quoteToConvert.discountPercent || '';
@@ -1238,11 +1306,13 @@
             document.querySelectorAll('.btn-delete-user').forEach(btn => btn.addEventListener('click', () => handleDeleteUser(btn.dataset.userId)));
             
             document.querySelectorAll('.btn-receive-order').forEach(btn => btn.addEventListener('click', () => handleReceivePurchaseOrder(btn.dataset.orderId)));
-            // NOVOS EVENTOS DE EDIÇÃO/EXCLUSÃO
             document.querySelectorAll('.btn-edit-order').forEach(btn => btn.addEventListener('click', () => showEditPurchaseOrderModal(btn.dataset.orderId)));
             document.querySelectorAll('.btn-delete-order').forEach(btn => btn.addEventListener('click', () => handleDeletePurchaseOrder(btn.dataset.orderId)));
             document.querySelectorAll('.btn-edit-expense').forEach(btn => btn.addEventListener('click', () => showEditExpenseModal(btn.dataset.expenseId)));
             document.querySelectorAll('.btn-delete-expense').forEach(btn => btn.addEventListener('click', () => handleDeleteExpense(btn.dataset.expenseId)));
+            
+            // NOVO EVENTO
+            document.querySelectorAll('.btn-settle-expense').forEach(btn => btn.addEventListener('click', () => handleSettleExpense(btn.dataset.expenseId)));
 
             document.querySelectorAll('.tab-link').forEach(tabLink => {
                 tabLink.addEventListener('click', (e) => {
@@ -1267,7 +1337,6 @@
             }
         }
 
-        // NOVAS FUNÇÕES PARA ABRIR MODAIS DE EDIÇÃO
         function showEditPurchaseOrderModal(orderId) {
             const order = state.purchaseOrders.find(o => o.id === orderId);
             if (order) {
