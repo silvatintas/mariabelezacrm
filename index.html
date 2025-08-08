@@ -26,6 +26,14 @@
         #main-nav::-webkit-scrollbar { height: 4px; }
         #main-nav::-webkit-scrollbar-thumb { background: #f472b6; border-radius: 10px; }
         #main-nav::-webkit-scrollbar-track { background: #f1f5f9; }
+        /* Estilo para botões desabilitados */
+        button:disabled {
+            background-color: #cbd5e1;
+            cursor: not-allowed;
+        }
+        button:disabled:hover {
+            background-color: #cbd5e1;
+        }
         @media print {
             body * { visibility: hidden; }
             #print-area, #print-area * { visibility: visible; }
@@ -115,7 +123,6 @@
         const artifactAppId = typeof __app_id !== 'undefined' ? __app_id : 'crm-maria-beleza';
 
         let salesChart = null;
-        // NOVO GRÁFICO DE DESPESAS
         let expenseChart = null;
         const ADMIN_PASSWORD_STATIC = '20092005';
 
@@ -129,7 +136,6 @@
             quotes: [],
             users: [],
             onlineUsers: [],
-            // NOVOS ESTADOS
             expenses: [],
             expenseCategories: [],
             purchaseOrders: [],
@@ -149,7 +155,6 @@
             }
         });
 
-        // CAMINHOS DO BANCO DE DADOS ATUALIZADOS
         function setupDbPaths() {
             const basePath = `artifacts/${artifactAppId}/public/data`;
             return {
@@ -179,7 +184,6 @@
         }
         initializeAdminUser();
         
-        // LISTENERS DO BANCO DE DADOS ATUALIZADOS
         function setupListeners() {
             if (!state.currentUser) return;
             onSnapshot(query(collection(db, dbPaths.clients)), s => { state.clients = s.docs.map((d, i) => ({ id: d.id, code: i + 1, ...d.data() })); if (['clientes', 'cobranca', 'financeiro'].includes(state.currentView)) render(); });
@@ -189,7 +193,7 @@
             onSnapshot(query(collection(db, dbPaths.users)), s => { state.users = s.docs.map(d => ({ id: d.id, ...d.data() })); if (state.currentView === 'opcoes') render(); });
             onSnapshot(query(collection(db, dbPaths.expenses)), s => { state.expenses = s.docs.map(d => ({ id: d.id, ...d.data() })); if (['contas_a_pagar', 'financeiro'].includes(state.currentView)) render(); });
             onSnapshot(query(collection(db, dbPaths.expenseCategories)), s => { state.expenseCategories = s.docs.map(d => ({ id: d.id, ...d.data() })); if (['contas_a_pagar', 'financeiro'].includes(state.currentView)) render(); });
-            onSnapshot(query(collection(db, dbPaths.purchaseOrders)), s => { state.purchaseOrders = s.docs.map(d => ({ id: d.id, ...d.data() })); if (state.currentView === 'compras') render(); });
+            onSnapshot(query(collection(db, dbPaths.purchaseOrders)), s => { state.purchaseOrders = s.docs.map(d => ({ id: d.id, ...d.data() })); if (['compras', 'contas_a_pagar'].includes(state.currentView)) render(); });
             
             const sessionsQuery = query(collection(db, dbPaths.sessions));
             onSnapshot(sessionsQuery, (snapshot) => {
@@ -322,7 +326,7 @@
                 vendas: renderVendas,
                 orcamento: renderOrcamentos,
                 cobranca: renderCobranca,
-                financeiro: () => { const html = renderFinanceiro(); renderExpenseChart(); return html; }, // MODIFICADO
+                financeiro: () => { const html = renderFinanceiro(); renderExpenseChart(); return html; },
                 contas_a_pagar: renderContasAPagar,
                 opcoes: renderOpcoes
             };
@@ -360,7 +364,6 @@
                 </div>
             `;
         }
-        // FUNÇÃO ATUALIZADA - CÁLCULO DO LUCRO LÍQUIDO E GRÁFICO DE DESPESAS
         function renderFinanceiro() {
             const totalRevenue = state.sales.reduce((sum, sale) => sum + sale.total, 0);
             const totalCostOfGoods = state.sales.flatMap(sale => sale.items).reduce((sum, item) => sum + ((item.cost || 0) * item.quantity), 0);
@@ -391,7 +394,6 @@
                 </div>
             `;
         }
-        // NOVA FUNÇÃO PARA RENDERIZAR GRÁFICO DE DESPESAS
         function renderExpenseChart() {
             const ctx = document.getElementById('expenseChart');
             if (!ctx || state.expenses.length === 0) return;
@@ -456,7 +458,8 @@
             const brandHtml = Object.entries(productsByBrand).map(([brand, products]) => `<div class="mb-8"><h3 class="text-xl font-bold text-slate-700 mb-4 border-b pb-2">${brand}</h3><div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">${products.map(pr => `<div class="bg-white p-4 rounded-lg shadow-md border flex flex-col justify-between"><div><p class="font-bold text-lg">${pr.name}</p><p class="text-sm">Custo: <span class="font-semibold text-red-600">R$ ${parseFloat(pr.cost||0).toFixed(2).replace('.',',')}</span></p><p class="text-sm">Preço: <span class="font-semibold text-green-600">R$ ${parseFloat(pr.price).toFixed(2).replace('.',',')}</span></p><p class="text-sm">Estoque: <span class="font-semibold">${pr.quantity}</span></p></div><div class="mt-4 pt-4 border-t flex justify-end gap-2"><button class="btn-edit-product p-2 text-blue-500 hover:bg-blue-100 rounded-full" data-product-id="${pr.id}"><i data-lucide="edit" class="w-4 h-4"></i></button><button class="btn-delete-product p-2 text-red-500 hover:bg-red-100 rounded-full" data-product-id="${pr.id}"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></div>`).join('')}</div></div>`).join('');
             return `<div class="flex justify-between items-center mb-6 flex-wrap gap-4"><h2 class="text-3xl font-bold text-slate-800">Produtos</h2><button id="btn-new-product" class="bg-pink-400 text-white px-5 py-3 rounded-lg font-semibold hover:bg-pink-500 flex items-center"><i data-lucide="plus" class="w-5 h-5 mr-2"></i> Novo Produto</button></div>${state.products.length > 0 ? brandHtml : '<div class="bg-white p-6 rounded-lg shadow text-center">Nenhum produto cadastrado.</div>'}`;
         }
-        // FUNÇÃO DE COMPRAS IMPLEMENTADA
+        
+        // ALTERADO - ADICIONADO BOTÕES DE EDITAR/EXCLUIR
         function renderCompras() {
             const pendingOrders = state.purchaseOrders.filter(p => p.status === 'Pendente');
             const receivedOrders = state.purchaseOrders.filter(p => p.status === 'Recebido');
@@ -468,8 +471,10 @@
                     <td class="p-4 text-center">${p.items.reduce((a,i)=>a+i.quantity,0)}</td>
                     <td class="p-4 text-right font-semibold">R$ ${p.totalCost.toFixed(2).replace('.',',')}</td>
                     <td class="p-4 text-center"><span class="px-2 py-1 text-xs font-semibold text-yellow-800 bg-yellow-200 rounded-full">${p.status}</span></td>
-                    <td class="p-4 text-center">
+                    <td class="p-4 flex justify-center items-center gap-1">
                         <button data-order-id="${p.id}" class="btn-receive-order bg-green-500 text-white px-3 py-1 rounded-lg text-xs font-semibold hover:bg-green-600">Receber</button>
+                        <button data-order-id="${p.id}" class="btn-edit-order p-2 text-blue-500"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                        <button data-order-id="${p.id}" class="btn-delete-order p-2 text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                     </td>
                 </tr>
             `).join('');
@@ -502,7 +507,7 @@
                                     <th class="p-4 text-center">Itens</th>
                                     <th class="p-4 text-right">Custo Total</th>
                                     <th class="p-4 text-center">Status</th>
-                                    <th class="p-4 text-center">Ação</th>
+                                    <th class="p-4 text-center">Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -529,7 +534,6 @@
             if (salesChart) salesChart.destroy();
             salesChart = new Chart(ctx, { type: 'bar', data: { labels: sortedProducts.map(([name]) => name), datasets: [{ label: 'Unidades Vendidas', data: sortedProducts.map(([, count]) => count), backgroundColor: 'rgba(244, 114, 182, 0.6)', borderColor: 'rgba(244, 114, 182, 1)', borderWidth: 1 }] }, options: { indexAxis: 'y', scales: { x: { beginAtZero: true } }, responsive: true, plugins: { legend: { display: false }, title: { display: true, text: 'Top 10 Produtos por Unidades Vendidas' } } } });
         }
-        // FUNÇÃO ATUALIZADA - FILTRO DE DATA, BOTÕES DE EDITAR/EXCLUIR
         function renderVendas() {
             const filterDate = document.getElementById('filter-date-vendas')?.value || new Date().toISOString().slice(0, 10);
             const filteredSales = state.sales.filter(s => s.date.toDate().toISOString().slice(0, 10) === filterDate);
@@ -559,7 +563,6 @@
                 </div>
                 <div class="bg-white rounded-lg shadow overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr><th class="p-4 text-left">Data</th><th class="p-4 text-left">Cliente</th><th class="p-4 text-center hidden sm:table-cell">Itens</th><th class="p-4 text-right">Total</th><th class="p-4 hidden md:table-cell">Pagamento</th><th class="p-4 hidden lg:table-cell">Vendedor</th><th class="p-4 text-center">Ações</th></tr></thead><tbody>${salesRows||`<tr><td colspan="7" class="p-4 text-center">Nenhuma venda para esta data.</td></tr>`}</tbody></table></div></div>`;
         }
-        // FUNÇÃO ATUALIZADA - FILTRO DE DATA, BOTÕES DE EDITAR/EXCLUIR
         function renderOrcamentos() {
             const filterDate = document.getElementById('filter-date-orcamentos')?.value || new Date().toISOString().slice(0, 10);
             const filteredQuotes = state.quotes.filter(q => q.date.toDate().toISOString().slice(0, 10) === filterDate);
@@ -619,15 +622,21 @@
                     </div>
                 </div>`;
         }
-        // FUNÇÃO DE CONTAS A PAGAR IMPLEMENTADA
+        
+        // ALTERADO - ADICIONADO BOTÕES DE EDITAR/EXCLUIR
         function renderContasAPagar() {
              const expenseRows = state.expenses.sort((a,b) => b.date.toDate() - a.date.toDate()).map(exp => {
                 const category = state.expenseCategories.find(c => c.id === exp.categoryId);
-                return `<tr class="border-b">
+                const isFromPurchase = !!exp.purchaseOrderId;
+                return `<tr class="border-b ${isFromPurchase ? 'bg-slate-50 text-slate-500' : ''}">
                     <td class="p-4">${exp.date.toDate().toLocaleDateString('pt-BR')}</td>
                     <td class="p-4 font-medium">${exp.description}</td>
                     <td class="p-4 hidden sm:table-cell">${category?.name || 'N/A'}</td>
                     <td class="p-4 text-right font-semibold text-red-600">R$ ${exp.amount.toFixed(2).replace('.',',')}</td>
+                    <td class="p-4 flex justify-center items-center gap-1">
+                        <button data-expense-id="${exp.id}" class="btn-edit-expense p-2 text-blue-500" ${isFromPurchase ? 'disabled title="Gerencie através do Pedido de Compra"' : ''}><i data-lucide="edit" class="w-4 h-4"></i></button>
+                        <button data-expense-id="${exp.id}" class="btn-delete-expense p-2 text-red-500" ${isFromPurchase ? 'disabled title="Gerencie através do Pedido de Compra"' : ''}><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </td>
                 </tr>`
              }).join('');
 
@@ -646,8 +655,8 @@
                 <div class="bg-white rounded-lg shadow overflow-hidden">
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm">
-                            <thead><tr><th class="p-4 text-left">Data</th><th class="p-4 text-left">Descrição</th><th class="p-4 hidden sm:table-cell">Categoria</th><th class="p-4 text-right">Valor</th></tr></thead>
-                            <tbody>${expenseRows||'<tr><td colspan="4" class="p-4 text-center">Nenhuma despesa registrada.</td></tr>'}</tbody>
+                            <thead><tr><th class="p-4 text-left">Data</th><th class="p-4 text-left">Descrição</th><th class="p-4 hidden sm:table-cell">Categoria</th><th class="p-4 text-right">Valor</th><th class="p-4 text-center">Ações</th></tr></thead>
+                            <tbody>${expenseRows||'<tr><td colspan="5" class="p-4 text-center">Nenhuma despesa registrada.</td></tr>'}</tbody>
                         </table>
                     </div>
                 </div>
@@ -711,7 +720,6 @@
             `;
         }
 
-        // FUNÇÃO ATUALIZADA - SUPORTE A EDIÇÃO
         function getTransactionForm(type = 'quote', transaction = null) {
             const isSale = type === 'sale';
             const title = `${transaction ? 'Editar' : 'Nova'} ${isSale ? 'Venda' : 'Orçamento'}`;
@@ -772,41 +780,43 @@
             `);
         }
         
-        // NOVO FORMULÁRIO - PEDIDO DE COMPRA
-        function getPurchaseOrderForm() {
+        // ALTERADO - SUPORTE A EDIÇÃO
+        function getPurchaseOrderForm(order = null) {
             const productOptions = state.products.map(p => `<option value="${p.id}">${p.name} (Custo: R$ ${parseFloat(p.cost || 0).toFixed(2)})</option>`).join('');
             return `
                 <form id="form-purchase-order">
-                    <h3 class="text-2xl font-bold mb-4">Novo Pedido de Compra</h3>
-                    <div class="mb-4"><label class="block text-sm font-medium">Fornecedor*</label><input type="text" name="supplier" required class="w-full mt-1 px-3 py-2 border rounded-md"></div>
+                    <input type="hidden" name="id" value="${order?.id || ''}">
+                    <h3 class="text-2xl font-bold mb-4">${order ? 'Editar' : 'Novo'} Pedido de Compra</h3>
+                    <div class="mb-4"><label class="block text-sm font-medium">Fornecedor*</label><input type="text" name="supplier" required value="${order?.supplier || ''}" class="w-full mt-1 px-3 py-2 border rounded-md"></div>
                     <div class="mb-4 border rounded-lg p-4"><h4 class="font-semibold mb-2">Itens do Pedido</h4><div id="purchase-items-container" class="space-y-2 max-h-48 overflow-y-auto"></div><div class="flex items-center space-x-2 mt-3"><select id="select-product-to-purchase" class="flex-grow mt-1 px-3 py-2 border rounded-md"><option value="">Selecione um produto...</option>${productOptions}</select><button type="button" id="btn-add-purchase-item" class="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600"><i data-lucide="plus"></i></button></div></div>
                     <div class="border rounded-lg p-4 flex justify-between items-center">
                         <p class="text-lg font-bold">CUSTO TOTAL</p><p id="purchase-total" class="text-3xl font-bold text-red-600">R$ 0,00</p>
                     </div>
                     <div id="purchase-error" class="text-red-500 text-sm text-center mt-4 hidden"></div>
-                    <div class="mt-6 flex justify-end space-x-3"><button type="button" id="btn-cancel-modal" class="px-5 py-3 bg-slate-200 rounded-lg">Cancelar</button><button type="submit" class="px-5 py-3 bg-pink-400 text-white rounded-lg">Criar Pedido</button></div>
+                    <div class="mt-6 flex justify-end space-x-3"><button type="button" id="btn-cancel-modal" class="px-5 py-3 bg-slate-200 rounded-lg">Cancelar</button><button type="submit" class="px-5 py-3 bg-pink-400 text-white rounded-lg">${order ? 'Salvar Alterações' : 'Criar Pedido'}</button></div>
                 </form>
             `;
         }
 
-        // NOVO FORMULÁRIO - DESPESA
-        function getExpenseForm() {
-            const categoryOptions = state.expenseCategories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        // ALTERADO - SUPORTE A EDIÇÃO
+        function getExpenseForm(expense = null) {
+            const categoryOptions = state.expenseCategories.map(c => `<option value="${c.id}" ${expense?.categoryId === c.id ? 'selected' : ''}>${c.name}</option>`).join('');
+            const dateValue = expense ? expense.date.toDate().toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
             return `
                 <form id="form-expense">
-                    <h3 class="text-2xl font-bold mb-4">Nova Despesa</h3>
+                    <input type="hidden" name="id" value="${expense?.id || ''}">
+                    <h3 class="text-2xl font-bold mb-4">${expense ? 'Editar' : 'Nova'} Despesa</h3>
                     <div class="space-y-4">
-                        <div><label class="block text-sm font-medium">Descrição*</label><input type="text" name="description" required class="w-full mt-1 px-3 py-2 border rounded-md"></div>
-                        <div><label class="block text-sm font-medium">Valor (R$)*</label><input type="number" name="amount" required min="0.01" step="0.01" class="w-full mt-1 px-3 py-2 border rounded-md"></div>
+                        <div><label class="block text-sm font-medium">Descrição*</label><input type="text" name="description" required value="${expense?.description || ''}" class="w-full mt-1 px-3 py-2 border rounded-md"></div>
+                        <div><label class="block text-sm font-medium">Valor (R$)*</label><input type="number" name="amount" required min="0.01" step="0.01" value="${expense?.amount || ''}" class="w-full mt-1 px-3 py-2 border rounded-md"></div>
                         <div><label class="block text-sm font-medium">Categoria*</label><select name="categoryId" required class="w-full mt-1 px-3 py-2 border rounded-md"><option value="">Selecione...</option>${categoryOptions}</select></div>
-                        <div><label class="block text-sm font-medium">Data*</label><input type="date" name="date" required value="${new Date().toISOString().slice(0,10)}" class="w-full mt-1 px-3 py-2 border rounded-md"></div>
+                        <div><label class="block text-sm font-medium">Data*</label><input type="date" name="date" required value="${dateValue}" class="w-full mt-1 px-3 py-2 border rounded-md"></div>
                     </div>
-                    <div class="mt-6 flex justify-end space-x-3"><button type="button" id="btn-cancel-modal" class="px-5 py-3 bg-slate-200 rounded-lg">Cancelar</button><button type="submit" class="px-5 py-3 bg-pink-400 text-white rounded-lg">Salvar Despesa</button></div>
+                    <div class="mt-6 flex justify-end space-x-3"><button type="button" id="btn-cancel-modal" class="px-5 py-3 bg-slate-200 rounded-lg">Cancelar</button><button type="submit" class="px-5 py-3 bg-pink-400 text-white rounded-lg">${expense ? 'Salvar Alterações' : 'Salvar Despesa'}</button></div>
                 </form>
             `;
         }
         
-        // NOVO FORMULÁRIO - GERENCIAR CATEGORIAS
         function getManageCategoriesForm() {
             const categoryList = state.expenseCategories.map(c => `<li class="flex justify-between items-center p-2 border-b">${c.name}<button class="btn-delete-category text-red-500 p-1" data-id="${c.id}"><i data-lucide="trash-2" class="w-4 h-4"></i></button></li>`).join('');
             return `
@@ -908,7 +918,6 @@
             return true;
         }
 
-        // FUNÇÃO ATUALIZADA - LÓGICA DE EDIÇÃO E EXCLUSÃO DE ORÇAMENTO
         async function handleTransaction(e, type) {
             e.preventDefault();
             const errorEl = document.getElementById('transaction-error');
@@ -941,19 +950,16 @@
 
             try {
                 const batch = writeBatch(db);
-                if(id) { // Editando
+                if(id) { 
                     const docRef = doc(db, dbPath, id);
                     batch.update(docRef, transactionData);
-                } else { // Criando novo
+                } else {
                     const docRef = doc(collection(db, dbPath));
                     batch.set(docRef, transactionData);
                 }
 
                 if (type === 'sale') {
                     transactionData.paymentMethod = paymentMethod;
-                    // Lógica para abater do estoque (complexa para edição, simplificada aqui)
-                    // Para uma edição correta, seria necessário comparar o antes e depois.
-                    // Por simplicidade, a edição não vai reajustar o estoque. Apenas a criação.
                     if(!id) {
                          for (const item of items) {
                             const productRef = doc(db, dbPaths.products, item.productId);
@@ -962,13 +968,12 @@
                         }
                     }
                    
-                    if (paymentMethod === 'A Prazo' && !id) { // Só adiciona dívida na criação
+                    if (paymentMethod === 'A Prazo' && !id) {
                         const clientRef = doc(db, dbPaths.clients, clientId);
                         const client = state.clients.find(c => c.id === clientId);
                         batch.update(clientRef, { debt: (client.debt || 0) + total });
                     }
                     
-                    // SE VEIO DE UM ORÇAMENTO, APAGA O ORÇAMENTO
                     if (state.quoteToConvert) {
                         const quoteRef = doc(db, dbPaths.quotes, state.quoteToConvert.id);
                         batch.delete(quoteRef);
@@ -1022,10 +1027,13 @@
             }
         }
 
-        // NOVAS FUNÇÕES DE LÓGICA DE NEGÓCIO
+        // ALTERADO - LÓGICA DE EDIÇÃO E VINCULO COM DESPESA
         async function handlePurchaseOrderForm(e) {
             e.preventDefault();
-            const supplier = e.target.supplier.value;
+            const formData = new FormData(e.target);
+            const id = formData.get('id');
+            const supplier = formData.get('supplier');
+            
             const items = Array.from(document.querySelectorAll('.purchase-item')).map(el => {
                 const product = state.products.find(p => p.id === el.dataset.productId);
                 return { 
@@ -1035,6 +1043,7 @@
                     cost: parseFloat(product.cost)
                 }
             });
+
             if(items.length === 0) {
                 document.getElementById('purchase-error').textContent = 'Adicione pelo menos um item ao pedido.';
                 document.getElementById('purchase-error').classList.remove('hidden');
@@ -1043,44 +1052,77 @@
             const totalCost = items.reduce((sum, item) => sum + (item.cost * item.quantity), 0);
 
             const purchaseOrderData = {
-                supplier,
-                items,
-                totalCost,
-                date: new Date(),
-                status: 'Pendente' // Pendente ou Recebido
+                supplier, items, totalCost, date: new Date(),
+                status: id ? state.purchaseOrders.find(o => o.id === id).status : 'Pendente'
             };
             
             try {
                 const batch = writeBatch(db);
-                // 1. Adiciona o pedido de compra
-                const purchaseOrderRef = doc(collection(db, dbPaths.purchaseOrders));
-                batch.set(purchaseOrderRef, purchaseOrderData);
-
-                // 2. Cria a despesa automática
                 const expenseDesc = `Compra de mercadorias - Fornecedor: ${supplier}`;
                 let category = state.expenseCategories.find(c => c.name.toLowerCase() === 'compra de mercadorias');
-                if(!category) {
-                     const catRef = doc(collection(db, dbPaths.expenseCategories));
-                     const newCategory = {name: 'Compra de Mercadorias'};
-                     batch.set(catRef, newCategory);
-                     category = {id: catRef.id, ...newCategory};
+
+                if (!category) { // Se a categoria não existir, cria
+                    const catRef = doc(collection(db, dbPaths.expenseCategories));
+                    const newCategoryData = { name: 'Compra de Mercadorias' };
+                    batch.set(catRef, newCategoryData);
+                    category = { id: catRef.id, ...newCategoryData };
                 }
 
-                const expenseData = {
-                    description: expenseDesc,
-                    amount: totalCost,
-                    categoryId: category.id,
-                    date: new Date()
-                };
-                const expenseRef = doc(collection(db, dbPaths.expenses));
-                batch.set(expenseRef, expenseData);
+                if (id) { // Editando
+                    const orderRef = doc(db, dbPaths.purchaseOrders, id);
+                    batch.update(orderRef, purchaseOrderData);
+
+                    // Encontra e atualiza a despesa vinculada
+                    const expenseQuery = query(collection(db, dbPaths.expenses), where("purchaseOrderId", "==", id));
+                    const expenseSnapshot = await getDocs(expenseQuery);
+                    if (!expenseSnapshot.empty) {
+                        const expenseDoc = expenseSnapshot.docs[0];
+                        batch.update(expenseDoc.ref, { amount: totalCost, description: expenseDesc });
+                    }
+                } else { // Criando
+                    const purchaseOrderRef = doc(collection(db, dbPaths.purchaseOrders));
+                    batch.set(purchaseOrderRef, purchaseOrderData);
+
+                    const expenseData = {
+                        description: expenseDesc, amount: totalCost, categoryId: category.id,
+                        date: new Date(), purchaseOrderId: purchaseOrderRef.id // VINCULO IMPORTANTE
+                    };
+                    const expenseRef = doc(collection(db, dbPaths.expenses));
+                    batch.set(expenseRef, expenseData);
+                }
                 
                 await batch.commit();
                 closeModal();
             } catch(err) {
-                console.error("Erro ao criar pedido: ", err);
-                document.getElementById('purchase-error').textContent = 'Erro ao criar pedido.';
+                console.error("Erro ao salvar pedido: ", err);
+                document.getElementById('purchase-error').textContent = 'Erro ao salvar pedido.';
                 document.getElementById('purchase-error').classList.remove('hidden');
+            }
+        }
+        
+        // NOVO
+        async function handleDeletePurchaseOrder(orderId) {
+            if (!confirm('Tem certeza que deseja excluir este pedido de compra? A despesa associada também será excluída.')) return;
+            
+            try {
+                const batch = writeBatch(db);
+
+                // 1. Deleta o pedido
+                const orderRef = doc(db, dbPaths.purchaseOrders, orderId);
+                batch.delete(orderRef);
+
+                // 2. Encontra e deleta a despesa vinculada
+                const expenseQuery = query(collection(db, dbPaths.expenses), where("purchaseOrderId", "==", orderId));
+                const expenseSnapshot = await getDocs(expenseQuery);
+                if (!expenseSnapshot.empty) {
+                    const expenseDoc = expenseSnapshot.docs[0];
+                    batch.delete(expenseDoc.ref);
+                }
+
+                await batch.commit();
+            } catch(err) {
+                console.error("Erro ao excluir pedido:", err);
+                alert("Ocorreu um erro ao excluir o pedido.");
             }
         }
 
@@ -1090,11 +1132,9 @@
              if(!order) return;
 
              const batch = writeBatch(db);
-             // 1. Atualiza o status do pedido
              const orderRef = doc(db, dbPaths.purchaseOrders, orderId);
              batch.update(orderRef, { status: 'Recebido' });
 
-             // 2. Atualiza o estoque de cada produto
              for(const item of order.items) {
                 const productRef = doc(db, dbPaths.products, item.productId);
                 const product = state.products.find(p => p.id === item.productId);
@@ -1106,17 +1146,31 @@
              await batch.commit();
         }
 
+        // ALTERADO - LÓGICA DE EDIÇÃO
         async function handleExpenseForm(e) {
             e.preventDefault();
             const formData = new FormData(e.target);
+            const id = formData.get('id');
             const expenseData = {
                 description: formData.get('description'),
                 amount: parseFloat(formData.get('amount')),
                 categoryId: formData.get('categoryId'),
-                date: new Date(formData.get('date') + 'T12:00:00') // Adiciona hora para evitar problemas de fuso
+                date: new Date(formData.get('date') + 'T12:00:00')
             };
-            await addDoc(collection(db, dbPaths.expenses), expenseData);
+
+            if (id) {
+                await updateDoc(doc(db, dbPaths.expenses, id), expenseData);
+            } else {
+                await addDoc(collection(db, dbPaths.expenses), expenseData);
+            }
             closeModal();
+        }
+        
+        // NOVO
+        async function handleDeleteExpense(expenseId) {
+            if (confirm("Tem certeza que deseja excluir esta despesa?")) {
+                await deleteDoc(doc(db, dbPaths.expenses, expenseId));
+            }
         }
 
         async function handleCategoryForm(e) {
@@ -1124,20 +1178,19 @@
             const name = e.target.name.value;
             if (name && name.trim() !== '') {
                  await addDoc(collection(db, dbPaths.expenseCategories), { name: name.trim() });
-                 showManageCategoriesModal(); // Recarrega o modal
+                 showManageCategoriesModal();
             }
         }
 
         async function handleDeleteCategory(id) {
             if (confirm('Tem certeza? Se houver despesas nesta categoria, elas ficarão como "Sem Categoria".')) {
                 await deleteDoc(doc(db, dbPaths.expenseCategories, id));
-                showManageCategoriesModal(); // Recarrega o modal
+                showManageCategoriesModal();
             }
         }
 
         // --- EVENT LISTENERS DINÂMICOS ---
         
-        // FUNÇÃO ATUALIZADA COM NOVOS EVENTOS
         function addEventListeners() {
             document.getElementById('btn-logout')?.addEventListener('click', handleLogout);
             document.getElementById('btn-new-client')?.addEventListener('click', showNewClientModal);
@@ -1147,11 +1200,9 @@
             document.getElementById('btn-goto-cobranca')?.addEventListener('click', () => navigateTo('cobranca'));
             document.getElementById('btn-manual-backup')?.addEventListener('click', handleManualBackup);
 
-            // Filtros de data
             document.getElementById('filter-date-vendas')?.addEventListener('change', render);
             document.getElementById('filter-date-orcamentos')?.addEventListener('change', render);
 
-            // Novos Eventos
             document.getElementById('btn-new-purchase-order')?.addEventListener('click', () => openModal(getPurchaseOrderForm(), 'max-w-2xl'));
             document.getElementById('btn-new-expense')?.addEventListener('click', () => openModal(getExpenseForm(), 'max-w-lg'));
             document.getElementById('btn-manage-categories')?.addEventListener('click', showManageCategoriesModal);
@@ -1164,11 +1215,9 @@
             document.querySelectorAll('.btn-edit-product').forEach(btn => btn.addEventListener('click', () => showEditProductModal(state.products.find(p => p.id === btn.dataset.productId))));
             document.querySelectorAll('.btn-delete-product').forEach(btn => btn.addEventListener('click', () => handleDeleteProduct(btn.dataset.productId)));
             
-            // Eventos de Venda
             document.querySelectorAll('.btn-edit-sale').forEach(btn => btn.addEventListener('click', () => showEditTransactionModal(btn.dataset.saleId, 'sale')));
             document.querySelectorAll('.btn-delete-sale').forEach(btn => btn.addEventListener('click', () => handleDeleteTransaction(btn.dataset.saleId, 'sale')));
 
-            // Eventos de Orçamento
             document.querySelectorAll('.btn-edit-quote').forEach(btn => btn.addEventListener('click', () => showEditTransactionModal(btn.dataset.quoteId, 'quote')));
             document.querySelectorAll('.btn-delete-quote').forEach(btn => btn.addEventListener('click', () => handleDeleteTransaction(btn.dataset.quoteId, 'quote')));
 
@@ -1184,14 +1233,16 @@
                 }
             }));
 
-            // Eventos de Usuário
             document.getElementById('btn-new-user')?.addEventListener('click', () => showUserForm());
             document.querySelectorAll('.btn-edit-user').forEach(btn => btn.addEventListener('click', () => showUserForm(state.users.find(u => u.id === btn.dataset.userId))));
             document.querySelectorAll('.btn-delete-user').forEach(btn => btn.addEventListener('click', () => handleDeleteUser(btn.dataset.userId)));
             
-            // Eventos de Compra
             document.querySelectorAll('.btn-receive-order').forEach(btn => btn.addEventListener('click', () => handleReceivePurchaseOrder(btn.dataset.orderId)));
-
+            // NOVOS EVENTOS DE EDIÇÃO/EXCLUSÃO
+            document.querySelectorAll('.btn-edit-order').forEach(btn => btn.addEventListener('click', () => showEditPurchaseOrderModal(btn.dataset.orderId)));
+            document.querySelectorAll('.btn-delete-order').forEach(btn => btn.addEventListener('click', () => handleDeletePurchaseOrder(btn.dataset.orderId)));
+            document.querySelectorAll('.btn-edit-expense').forEach(btn => btn.addEventListener('click', () => showEditExpenseModal(btn.dataset.expenseId)));
+            document.querySelectorAll('.btn-delete-expense').forEach(btn => btn.addEventListener('click', () => handleDeleteExpense(btn.dataset.expenseId)));
 
             document.querySelectorAll('.tab-link').forEach(tabLink => {
                 tabLink.addEventListener('click', (e) => {
@@ -1215,6 +1266,23 @@
                 updateTransactionTotal();
             }
         }
+
+        // NOVAS FUNÇÕES PARA ABRIR MODAIS DE EDIÇÃO
+        function showEditPurchaseOrderModal(orderId) {
+            const order = state.purchaseOrders.find(o => o.id === orderId);
+            if (order) {
+                openModal(getPurchaseOrderForm(order), 'max-w-2xl');
+                order.items.forEach(item => addPurchaseItem(item.productId, item.quantity));
+                updatePurchaseTotal();
+            }
+        }
+        
+        function showEditExpenseModal(expenseId) {
+            const expense = state.expenses.find(e => e.id === expenseId);
+            if(expense) {
+                openModal(getExpenseForm(expense), 'max-w-lg');
+            }
+        }
         
         function showManageCategoriesModal(){
             openModal(getManageCategoriesForm(), 'max-w-md');
@@ -1232,17 +1300,16 @@
             lucide.createIcons();
         }
         
-        function addPurchaseItem(productId) {
+        function addPurchaseItem(productId, quantity = 1) {
             const product = state.products.find(p => p.id === productId);
             if (!product || document.querySelector(`.purchase-item[data-product-id="${productId}"]`)) return;
 
-             const itemHtml = `<div class="purchase-item flex items-center space-x-2 p-2 bg-slate-50 rounded" data-product-id="${product.id}" data-cost="${product.cost}" data-product-name="${product.name}"><p class="flex-grow">${product.name}</p><input type="number" value="1" min="1" class="w-20 text-center border rounded-md p-1 purchase-item-quantity"><p class="w-24 text-right font-semibold purchase-item-subtotal">R$ ${parseFloat(product.cost).toFixed(2)}</p><button type="button" class="btn-remove-purchase-item text-red-500 hover:text-red-700 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>`;
+             const itemHtml = `<div class="purchase-item flex items-center space-x-2 p-2 bg-slate-50 rounded" data-product-id="${product.id}" data-cost="${product.cost}" data-product-name="${product.name}"><p class="flex-grow">${product.name}</p><input type="number" value="${quantity}" min="1" class="w-20 text-center border rounded-md p-1 purchase-item-quantity"><p class="w-24 text-right font-semibold purchase-item-subtotal">R$ ${parseFloat(product.cost * quantity).toFixed(2)}</p><button type="button" class="btn-remove-purchase-item text-red-500 hover:text-red-700 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>`;
             document.getElementById('purchase-items-container').insertAdjacentHTML('beforeend', itemHtml);
             updatePurchaseTotal();
             lucide.createIcons();
         }
 
-        // FUNÇÃO ATUALIZADA COM NOVOS EVENTOS DE MODAL
         function addModalEventListeners() {
             document.getElementById('btn-cancel-modal')?.addEventListener('click', closeModal);
             document.getElementById('form-client')?.addEventListener('submit', handleClientForm);
@@ -1251,7 +1318,6 @@
             document.getElementById('form-quote')?.addEventListener('submit', (e) => handleTransaction(e, 'quote'));
             document.getElementById('form-receive-payment')?.addEventListener('submit', handleReceivePayment);
             document.getElementById('form-user')?.addEventListener('submit', handleUserForm);
-            // Novos formulários
             document.getElementById('form-purchase-order')?.addEventListener('submit', handlePurchaseOrderForm);
             document.getElementById('form-expense')?.addEventListener('submit', handleExpenseForm);
             document.getElementById('form-category')?.addEventListener('submit', handleCategoryForm);
