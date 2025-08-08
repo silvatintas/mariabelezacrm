@@ -38,6 +38,9 @@
             #print-area, #print-area * { visibility: visible; }
             #print-area { position: absolute; left: 0; top: 0; width: 100%; }
         }
+        .details-row.hidden {
+            display: none;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
@@ -138,10 +141,10 @@
             expenses: [],
             expenseCategories: [],
             purchaseOrders: [],
-            receivables: [], // NOVO: Contas a Receber (substitui a lógica de 'debt')
+            receivables: [], 
             quoteToConvert: null,
             currentView: 'dashboard',
-            currentParam: null // NOVO: Para passar parâmetros entre views, como ID do cliente
+            currentParam: null
         };
 
         // --- INICIALIZAÇÃO DA APLICAÇÃO ---
@@ -168,7 +171,7 @@
                 expenses: `${basePath}/expenses`,
                 expenseCategories: `${basePath}/expenseCategories`,
                 purchaseOrders: `${basePath}/purchaseOrders`,
-                receivables: `${basePath}/receivables`, // NOVO
+                receivables: `${basePath}/receivables`,
             };
         }
         const dbPaths = setupDbPaths();
@@ -286,7 +289,7 @@
                 dashboard: 'Início',
                 financeiro: 'Financeiro',
                 contas_a_pagar: 'Contas a Pagar',
-                cobranca: 'Cobrança', // Antiga "Pagamentos"
+                cobranca: 'Cobrança',
                 opcoes: 'Opções'
             }
         };
@@ -297,8 +300,7 @@
                 `<a href="#" class="nav-link px-4 py-3 text-sm font-medium text-slate-600 hover:bg-slate-200 border-b-2 border-transparent transition-colors" data-view="${view}">${title}</a>`
             ).join('');
         }
-
-        // ALTERADO para aceitar parâmetros
+        
         function navigateTo(view, param = null) {
             state.currentView = view;
             state.currentParam = param;
@@ -327,7 +329,7 @@
             const views = {
                 dashboard: renderDashboard,
                 clientes: renderClientes,
-                clientProfile: () => renderClientProfile(state.currentParam), // NOVO
+                clientProfile: () => renderClientProfile(state.currentParam),
                 produtos: renderProdutos,
                 compras: renderCompras,
                 estoque: () => { const html = renderEstoque(); renderSalesChart(); return html; },
@@ -444,7 +446,6 @@
             });
         }
         
-        // ALTERADO - Adicionado botão de Ver Perfil
         function renderClientes() {
             const clientsRows = state.clients.map(client => `<tr class="border-b"><td class="p-4">${client.code}</td><td class="p-4 font-medium">${client.name}</td><td class="p-4 hidden sm:table-cell">${client.cpf||'N/A'}</td><td class="p-4 hidden md:table-cell">${client.phone||'N/A'}</td><td class="p-4 flex gap-2"><button class="btn-view-profile p-2 text-green-600 hover:bg-green-100 rounded-full" title="Ver Perfil" data-client-id="${client.id}"><i data-lucide="eye" class="w-5 h-5"></i></button><button class="btn-edit-client p-2 text-blue-500 hover:bg-blue-100 rounded-full" title="Editar" data-client-id="${client.id}"><i data-lucide="edit" class="w-5 h-5"></i></button><button class="btn-delete-client p-2 text-red-500 hover:bg-red-100 rounded-full" title="Excluir" data-client-id="${client.id}"><i data-lucide="trash-2" class="w-5 h-5"></i></button></td></tr>`).join('');
             return `
@@ -453,7 +454,6 @@
             `;
         }
 
-        // NOVO - VIEW DE PERFIL DO CLIENTE
         function renderClientProfile(clientId) {
             const client = state.clients.find(c => c.id === clientId);
             if (!client) return `<h2 class="text-3xl">Cliente não encontrado</h2><p><button id="btn-back-to-clients" class="text-blue-500 hover:underline">Voltar</button></p>`;
@@ -518,7 +518,6 @@
             `;
         }
         
-        // ALTERADO - ADICIONADO DATA DE VALIDADE
         function renderProdutos() {
             const productsByBrand = state.products.reduce((acc, p) => { const brand = p.brand || 'Sem Marca'; if (!acc[brand]) acc[brand] = []; acc[brand].push(p); return acc; }, {});
             const brandHtml = Object.entries(productsByBrand).map(([brand, products]) => `<div class="mb-8"><h3 class="text-xl font-bold text-slate-700 mb-4 border-b pb-2">${brand}</h3><div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">${products.map(pr => `
@@ -670,29 +669,93 @@
                 <div class="bg-white rounded-lg shadow overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr><th class="p-4 text-left">Data</th><th class="p-4 text-left">Cliente</th><th class="p-4 text-center">Itens</th><th class="p-4 text-right">Total</th><th class="p-4 text-center">Ações</th></tr></thead><tbody>${quoteRows||`<tr><td colspan="5" class="p-4 text-center">Nenhum orçamento para esta data.</td></tr>`}</tbody></table></div></div>`;
         }
         
-        // ALTERADO - LÓGICA COMPLETAMENTE NOVA
         function renderCobranca() {
             const today = new Date();
-            today.setHours(0,0,0,0);
-            const pendingReceivables = state.receivables.filter(r => r.status === 'Pendente').sort((a,b) => a.dueDate.toDate() - b.dueDate.toDate());
+            today.setHours(0, 0, 0, 0);
 
-            const rows = pendingReceivables.map(r => {
-                const client = state.clients.find(c => c.id === r.clientId);
-                const isOverdue = r.dueDate.toDate() < today;
-                return `
-                    <tr class="border-b">
-                        <td class="p-4 ${isOverdue ? 'text-red-600 font-bold' : ''}">${client?.name || 'Cliente não encontrado'}</td>
-                        <td class="p-4 text-center">${r.installmentNumber}/${r.totalInstallments}</td>
-                        <td class="p-4 font-semibold ${isOverdue ? 'text-red-600' : ''}">${r.dueDate.toDate().toLocaleDateString('pt-BR')}</td>
-                        <td class="p-4 text-right font-semibold">R$ ${r.amount.toFixed(2).replace('.',',')}</td>
-                        <td class="p-4 text-center">
-                            <button data-receivable-id="${r.id}" data-client-id="${r.clientId}" class="btn-settle-receivable bg-green-500 text-white px-4 py-2 rounded-lg text-xs font-semibold hover:bg-green-600">Receber</button>
+            const pendingReceivables = state.receivables.filter(r => r.status === 'Pendente');
+
+            const clientsWithDebts = pendingReceivables.reduce((acc, receivable) => {
+                const clientId = receivable.clientId;
+                if (!acc[clientId]) {
+                    const client = state.clients.find(c => c.id === clientId);
+                    if (client) {
+                        acc[clientId] = { client, receivables: [], totalDebt: 0, isOverdue: false };
+                    }
+                }
+                if (acc[clientId]) {
+                    acc[clientId].receivables.push(receivable);
+                    acc[clientId].totalDebt += receivable.amount;
+                    if (receivable.dueDate.toDate() < today) {
+                        acc[clientId].isOverdue = true;
+                    }
+                }
+                return acc;
+            }, {});
+            
+            const clientList = Object.values(clientsWithDebts).sort((a,b) => {
+                if (a.isOverdue && !b.isOverdue) return -1;
+                if (!a.isOverdue && b.isOverdue) return 1;
+                return a.client.name.localeCompare(b.client.name);
+            });
+
+            const rows = clientList.map(data => {
+                const { client, receivables, totalDebt, isOverdue } = data;
+                
+                const detailsRows = receivables.sort((a,b) => a.dueDate.toDate() - b.dueDate.toDate()).map(r => `
+                    <tr class="bg-slate-50 hover:bg-slate-100">
+                        <td class="p-2 pl-12 font-semibold ${r.dueDate.toDate() < today ? 'text-red-500' : ''}">${r.dueDate.toDate().toLocaleDateString('pt-BR')}</td>
+                        <td class="p-2 text-center">${r.installmentNumber}/${r.totalInstallments}</td>
+                        <td class="p-2 text-right">R$ ${r.amount.toFixed(2).replace('.', ',')}</td>
+                        <td class="p-2 text-center flex items-center justify-center gap-2">
+                            <button data-receivable-id="${r.id}" data-client-id="${r.clientId}" class="btn-settle-receivable bg-green-500 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-green-600">Receber</button>
+                            <button data-receivable-id="${r.id}" class="btn-edit-receivable p-1 text-blue-500 hover:bg-blue-100 rounded-full" title="Editar Parcela"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                            <button data-receivable-id="${r.id}" class="btn-delete-receivable p-1 text-red-500 hover:bg-red-100 rounded-full" title="Excluir Parcela"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                         </td>
                     </tr>
+                `).join('');
+
+                return `
+                    <tbody class="client-group">
+                        <tr class="border-b bg-white">
+                            <td class="p-4 font-bold ${isOverdue ? 'text-red-600' : ''}">${client.name}</td>
+                            <td class="p-4 text-center">${receivables.length}</td>
+                            <td class="p-4 text-right font-bold">R$ ${totalDebt.toFixed(2).replace('.', ',')}</td>
+                            <td class="p-4 text-center flex items-center justify-center gap-2">
+                                 <button class="btn-toggle-details p-2 text-slate-500 hover:bg-slate-200 rounded-full" data-client-id="${client.id}" title="Ver Parcelas"><i data-lucide="chevron-down" class="w-5 h-5"></i></button>
+                                 <button class="btn-view-profile p-2 text-green-600 hover:bg-green-100 rounded-full" data-client-id="${client.id}" title="Ver Perfil"><i data-lucide="eye" class="w-5 h-5"></i></button>
+                                 <button class="btn-edit-client p-2 text-blue-500 hover:bg-blue-100 rounded-full" data-client-id="${client.id}" title="Editar Cliente"><i data-lucide="edit" class="w-5 h-5"></i></button>
+                                 <button class="btn-delete-client p-2 text-red-500 hover:bg-red-100 rounded-full" data-client-id="${client.id}" title="Excluir Cliente"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+                            </td>
+                        </tr>
+                        <tr class="details-row hidden" data-details-for="${client.id}">
+                            <td colspan="4" class="p-0 bg-slate-50">
+                                <table class="w-full text-sm">
+                                    ${detailsRows}
+                                </table>
+                            </td>
+                        </tr>
+                    </tbody>
                 `;
             }).join('');
 
-            return `<h2 class="text-3xl font-bold text-slate-800 mb-6">Controle de Cobrança (Contas a Receber)</h2><div class="bg-white rounded-lg shadow overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr><th class="p-4 text-left">Cliente</th><th class="p-4 text-center">Parcela</th><th class="p-4 text-left">Vencimento</th><th class="p-4 text-right">Valor</th><th class="p-4 text-center">Ação</th></tr></thead><tbody>${rows||'<tr><td colspan="5" class="p-4 text-center">Nenhuma conta a receber pendente.</td></tr>'}</tbody></table></div></div>`;
+            return `
+                <h2 class="text-3xl font-bold text-slate-800 mb-6">Controle de Cobrança (Contas a Receber)</h2>
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-slate-100">
+                                <tr>
+                                    <th class="p-4 text-left">Cliente</th>
+                                    <th class="p-4 text-center">Parcelas Pendentes</th>
+                                    <th class="p-4 text-right">Dívida Total</th>
+                                    <th class="p-4 text-center">Ações</th>
+                                </tr>
+                            </thead>
+                            ${rows || '<tbody><tr><td colspan="4" class="p-4 text-center">Nenhuma conta a receber pendente.</td></tr></tbody>'}
+                        </table>
+                    </div>
+                </div>`;
         }
         function renderOpcoes() {
             const userRows = state.users.filter(u => u.username !== 'Admin').map(user => `<tr class="border-b"><td class="p-4 font-medium">${user.username}</td><td class="p-4">${user.role}</td><td class="p-4 flex gap-2"><button class="btn-edit-user p-2 text-blue-500" data-user-id="${user.id}"><i data-lucide="key" class="w-5 h-5"></i></button><button class="btn-delete-user p-2 text-red-500" data-user-id="${user.id}"><i data-lucide="trash-2" class="w-5 h-5"></i></button></td></tr>`).join('');
@@ -723,7 +786,7 @@
         
         function renderContasAPagar() {
             const pendingExpenses = state.expenses.filter(e => e.status === 'Pendente').sort((a,b) => a.dueDate.toDate() - b.dueDate.toDate());
-            const paidExpenses = state.expenses.filter(e => e.status === 'Pago').sort((a,b) => b.paymentDate.toDate() - a.date.toDate());
+            const paidExpenses = state.expenses.filter(e => e.status === 'Pago').sort((a,b) => b.paymentDate ? b.paymentDate.toDate() - a.date.toDate() : -1);
 
              const pendingRows = pendingExpenses.map(exp => {
                  const category = state.expenseCategories.find(c => c.id === exp.categoryId);
@@ -750,7 +813,7 @@
                     <td class="p-4 font-medium">${exp.description}</td>
                     <td class="p-4 hidden sm:table-cell">${category?.name || 'N/A'}</td>
                     <td class="p-4 text-right font-semibold">R$ ${exp.amount.toFixed(2).replace('.',',')}</td>
-                    <td class="p-4 text-center text-green-600 font-bold">Pago em ${exp.paymentDate.toDate().toLocaleDateString('pt-BR')}</td>
+                    <td class="p-4 text-center text-green-600 font-bold">Pago em ${exp.paymentDate ? exp.paymentDate.toDate().toLocaleDateString('pt-BR') : 'N/A'}</td>
                 </tr>`
              }).join('');
 
@@ -826,8 +889,7 @@
         
         function showNewProductModal() { openModal(getFormProduct(), 'max-w-lg'); }
         function showEditProductModal(product) { openModal(getFormProduct(product), 'max-w-lg'); }
-
-        // ALTERADO - ADICIONA DATA DE VALIDADE
+        
         function getFormProduct(product = null) {
             const validityDateValue = product?.validityDate ? product.validityDate.toDate().toISOString().slice(0, 10) : '';
             return `
@@ -850,8 +912,7 @@
                 </form>
             `;
         }
-
-        // ALTERADO - ADICIONA OPÇÃO DE PARCELAMENTO
+        
         function getTransactionForm(type = 'quote', transaction = null) {
             const isSale = type === 'sale';
             const title = `${transaction ? 'Editar' : 'Nova'} ${isSale ? 'Venda' : 'Orçamento'}`;
@@ -894,6 +955,28 @@
                     <div id="transaction-error" class="text-red-500 text-sm text-center mt-4 hidden"></div>
                     <div class="mt-6 flex justify-end space-x-3"><button type="button" id="btn-cancel-modal" class="px-5 py-3 bg-slate-200 rounded-lg">Cancelar</button><button type="submit" class="px-5 py-3 bg-pink-400 text-white rounded-lg">${buttonText}</button></div>
                 </form>`;
+        }
+        
+        function getEditReceivableForm(receivable) {
+             return `
+                <form id="form-edit-receivable">
+                    <h3 class="text-2xl font-bold mb-4">Editar Parcela</h3>
+                    <input type="hidden" name="id" value="${receivable.id}">
+                    <div class="p-4 mb-4 text-sm text-orange-800 rounded-lg bg-orange-100" role="alert">
+                        <span class="font-medium">Atenção!</span> Alterar o valor pode criar uma inconsistência com o valor total da venda original.
+                    </div>
+                    <div class="space-y-4">
+                        <div><label class="block text-sm">Cliente:</label> <span class="font-semibold">${receivable.clientName}</span></div>
+                        <div><label class="block text-sm">Parcela:</label> <span class="font-semibold">${receivable.installmentNumber}/${receivable.totalInstallments}</span></div>
+                        <div><label class="block text-sm font-medium">Valor da Parcela (R$)</label><input type="number" name="amount" required min="0.01" step="0.01" value="${receivable.amount.toFixed(2)}" class="w-full mt-1 px-3 py-2 border rounded-md"></div>
+                        <div><label class="block text-sm font-medium">Nova Data de Vencimento</label><input type="date" name="dueDate" required value="${receivable.dueDate.toDate().toISOString().slice(0, 10)}" class="w-full mt-1 px-3 py-2 border rounded-md"></div>
+                    </div>
+                    <div class="mt-6 flex justify-end space-x-3">
+                        <button type="button" id="btn-cancel-modal" class="px-5 py-3 bg-slate-200 rounded-lg">Cancelar</button>
+                        <button type="submit" class="px-5 py-3 bg-blue-500 text-white rounded-lg">Salvar Alterações</button>
+                    </div>
+                </form>
+            `;
         }
         
         function showUserForm(user = null) {
@@ -974,7 +1057,7 @@
             if (id) {
                 await updateDoc(doc(db, dbPaths.clients, id), clientData);
             } else {
-                clientData.latePaymentsCount = 0; // Inicializa contador de atrasos
+                clientData.latePaymentsCount = 0;
                 await addDoc(collection(db, dbPaths.clients), clientData);
             }
             closeModal();
@@ -986,7 +1069,6 @@
             }
         }
         
-        // ALTERADO - ADICIONA DATA DE VALIDADE
         async function handleProductForm(e) {
             e.preventDefault();
             const formData = new FormData(e.target);
@@ -1035,7 +1117,13 @@
             closeModal();
         }
 
+        // ALTERADO - ADICIONADO PROTEÇÃO PARA CONTAS ADMIN
         async function handleDeleteUser(id) {
+            const userToDelete = state.users.find(u => u.id === id);
+            if (userToDelete && userToDelete.role === 'admin') {
+                alert('Não é possível excluir um usuário administrador.');
+                return;
+            }
             if (confirm('Tem certeza que deseja excluir este usuário?')) {
                 await deleteDoc(doc(db, dbPaths.users, id));
             }
@@ -1048,8 +1136,7 @@
             }
             return true;
         }
-
-        // ALTERADO - LÓGICA DE PARCELAMENTO E BLOQUEIO DE COMPRA
+        
         async function handleTransaction(e, type) {
             e.preventDefault();
             const errorEl = document.getElementById('transaction-error');
@@ -1065,8 +1152,7 @@
 
             if (isSale && paymentMethod === 'A Prazo' && clientId === 'consumidor') { errorEl.textContent = 'Vendas "A Prazo" exigem um cliente cadastrado.'; errorEl.classList.remove('hidden'); return; }
             
-            // NOVO: Bloqueio de compra a prazo para clientes com pendências
-            if (isSale && paymentMethod === 'A Prazo' && !id) { // Só checa em novas vendas
+            if (isSale && paymentMethod === 'A Prazo' && !id) {
                 const today = new Date();
                 today.setHours(0,0,0,0);
                 const hasOverdue = state.receivables.some(r => r.clientId === clientId && r.status === 'Pendente' && r.dueDate.toDate() < today);
@@ -1106,16 +1192,16 @@
                 let saleId = id;
                 let saleDocRef;
 
-                if(id) { // Editando (lógica simplificada, não altera parcelas já criadas)
+                if(id) { 
                     saleDocRef = doc(db, dbPath, id);
                     batch.update(saleDocRef, transactionData);
-                } else { // Criando
+                } else { 
                     saleDocRef = doc(collection(db, dbPath));
                     saleId = saleDocRef.id;
                     batch.set(saleDocRef, transactionData);
                 }
                 
-                if (isSale && !id) { // Apenas para novas vendas
+                if (isSale && !id) {
                     for (const item of items) {
                         const productRef = doc(db, dbPaths.products, item.productId);
                         const product = state.products.find(p => p.id === item.productId);
@@ -1127,8 +1213,8 @@
                         const clientName = state.clients.find(c => c.id === clientId)?.name || '';
                         for (let i = 1; i <= installmentsCount; i++) {
                             const dueDate = new Date();
-                            dueDate.setDate(dueDate.getDate() + 30 * i); // Vencimento a cada 30 dias
-                            dueDate.setHours(0,0,0,0); // Garante que a data não tenha hora
+                            dueDate.setDate(dueDate.getDate() + 30 * i); 
+                            dueDate.setHours(12,0,0,0);
                             const receivableData = {
                                 clientId, clientName, saleId,
                                 amount: installmentAmount,
@@ -1158,7 +1244,6 @@
         }
         
         async function handleDeleteTransaction(id, type) {
-            // Deletar uma venda a prazo deveria deletar as contas a receber. Lógica complexa omitida por simplicidade.
             if (confirm(`Tem certeza que deseja excluir? Se for uma venda a prazo, as parcelas NÃO serão removidas.`)) {
                 const dbPath = type === 'sale' ? dbPaths.sales : dbPaths.quotes;
                 await deleteDoc(doc(db, dbPath, id));
@@ -1342,7 +1427,6 @@
             }
         }
         
-        // NOVO - LÓGICA PARA BAIXAR CONTA A RECEBER E COMPUTAR ATRASO
         async function handleSettleReceivable(receivableId, clientId) {
             if (confirm("Confirmar o recebimento desta parcela?")) {
                 const receivable = state.receivables.find(r => r.id === receivableId);
@@ -1357,7 +1441,7 @@
                     paymentDate: new Date()
                 });
 
-                if (isLate) {
+                if (isLate && clientId) {
                     const clientRef = doc(db, dbPaths.clients, clientId);
                     try {
                          const clientDoc = await getDoc(clientRef);
@@ -1369,6 +1453,27 @@
                         console.error("Erro ao atualizar contador de atrasos do cliente:", error)
                     }
                 }
+            }
+        }
+        
+        async function handleEditReceivable(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const id = formData.get('id');
+            if (!id) return;
+
+            const updatedData = {
+                amount: parseFloat(formData.get('amount')),
+                dueDate: new Date(formData.get('dueDate') + 'T12:00:00'),
+            };
+
+            await updateDoc(doc(db, dbPaths.receivables, id), updatedData);
+            closeModal();
+        }
+        
+        async function handleDeleteReceivable(receivableId) {
+            if (confirm("Tem certeza que deseja PERDOAR/EXCLUIR esta parcela? A ação não pode ser desfeita.")) {
+                await deleteDoc(doc(db, dbPaths.receivables, receivableId));
             }
         }
 
@@ -1418,30 +1523,42 @@
             document.getElementById('btn-new-product')?.addEventListener('click', showNewProductModal);
             document.getElementById('btn-new-sale')?.addEventListener('click', () => { state.quoteToConvert = null; openModal(getTransactionForm('sale'), 'max-w-2xl'); });
             document.getElementById('btn-new-quote')?.addEventListener('click', () => openModal(getTransactionForm('quote'), 'max-w-2xl'));
-            document.getElementById('btn-goto-cobranca')?.addEventListener('click', () => navigateTo('cobranca'));
             document.getElementById('btn-manual-backup')?.addEventListener('click', handleManualBackup);
-
             document.getElementById('filter-date-vendas')?.addEventListener('change', render);
             document.getElementById('filter-date-orcamentos')?.addEventListener('change', render);
-
             document.getElementById('btn-new-purchase-order')?.addEventListener('click', () => openModal(getPurchaseOrderForm(), 'max-w-2xl'));
             document.getElementById('btn-new-expense')?.addEventListener('click', () => openModal(getExpenseForm(), 'max-w-lg'));
-            document.getElementById('btn-manage-categories')?.addEventListener('click', showManageCategoriesModal);
+            document.getElementById('btn-manage-categories')?.addEventListener('click', () => openModal(getManageCategoriesForm(), 'max-w-md'));
             document.getElementById('btn-back-to-clients')?.addEventListener('click', () => navigateTo('clientes'));
-
 
             document.querySelectorAll('.btn-stock-update').forEach(btn => btn.addEventListener('click', () => handleStockUpdate(btn.dataset.productId, btn.dataset.action)));
             document.querySelectorAll('.btn-view-profile').forEach(btn => btn.addEventListener('click', () => navigateTo('clientProfile', btn.dataset.clientId)));
             document.querySelectorAll('.btn-settle-receivable').forEach(btn => btn.addEventListener('click', () => handleSettleReceivable(btn.dataset.receivableId, btn.dataset.clientId)));
+            
+            document.querySelectorAll('.btn-toggle-details').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const clientId = btn.dataset.clientId;
+                    const detailsRow = document.querySelector(`.details-row[data-details-for="${clientId}"]`);
+                    detailsRow?.classList.toggle('hidden');
+                    const icon = btn.querySelector('i');
+                    icon.setAttribute('data-lucide', detailsRow?.classList.contains('hidden') ? 'chevron-down' : 'chevron-up');
+                    lucide.createIcons();
+                });
+            });
 
             document.querySelectorAll('.btn-edit-client').forEach(btn => btn.addEventListener('click', () => showEditClientModal(state.clients.find(c => c.id === btn.dataset.clientId))));
             document.querySelectorAll('.btn-delete-client').forEach(btn => btn.addEventListener('click', () => handleDeleteClient(btn.dataset.clientId)));
             document.querySelectorAll('.btn-edit-product').forEach(btn => btn.addEventListener('click', () => showEditProductModal(state.products.find(p => p.id === btn.dataset.productId))));
             document.querySelectorAll('.btn-delete-product').forEach(btn => btn.addEventListener('click', () => handleDeleteProduct(btn.dataset.productId)));
             
+            document.querySelectorAll('.btn-edit-receivable').forEach(btn => btn.addEventListener('click', () => {
+                const receivable = state.receivables.find(r => r.id === btn.dataset.receivableId);
+                if(receivable) openModal(getEditReceivableForm(receivable), 'max-w-lg');
+            }));
+            document.querySelectorAll('.btn-delete-receivable').forEach(btn => btn.addEventListener('click', () => handleDeleteReceivable(btn.dataset.receivableId)));
+
             document.querySelectorAll('.btn-edit-sale').forEach(btn => btn.addEventListener('click', () => showEditTransactionModal(btn.dataset.saleId, 'sale')));
             document.querySelectorAll('.btn-delete-sale').forEach(btn => btn.addEventListener('click', () => handleDeleteTransaction(btn.dataset.saleId, 'sale')));
-
             document.querySelectorAll('.btn-edit-quote').forEach(btn => btn.addEventListener('click', () => showEditTransactionModal(btn.dataset.quoteId, 'quote')));
             document.querySelectorAll('.btn-delete-quote').forEach(btn => btn.addEventListener('click', () => handleDeleteTransaction(btn.dataset.quoteId, 'quote')));
 
@@ -1465,20 +1582,7 @@
             document.querySelectorAll('.btn-delete-order').forEach(btn => btn.addEventListener('click', () => handleDeletePurchaseOrder(btn.dataset.orderId)));
             document.querySelectorAll('.btn-edit-expense').forEach(btn => btn.addEventListener('click', () => showEditExpenseModal(btn.dataset.expenseId)));
             document.querySelectorAll('.btn-delete-expense').forEach(btn => btn.addEventListener('click', () => handleDeleteExpense(btn.dataset.expenseId)));
-            
             document.querySelectorAll('.btn-settle-expense').forEach(btn => btn.addEventListener('click', () => handleSettleExpense(btn.dataset.expenseId)));
-
-            document.querySelectorAll('.tab-link').forEach(tabLink => {
-                tabLink.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    document.querySelectorAll('.tab-link').forEach(link => link.classList.remove('active'));
-                    e.currentTarget.classList.add('active');
-                    const tabId = e.currentTarget.dataset.tab;
-                    document.querySelectorAll('.tab-pane').forEach(pane => {
-                        pane.id === `tab-${tabId}` ? pane.classList.remove('hidden') : pane.classList.add('hidden');
-                    });
-                });
-            });
         }
         
         function showEditTransactionModal(id, type) {
@@ -1543,6 +1647,7 @@
             document.getElementById('form-purchase-order')?.addEventListener('submit', handlePurchaseOrderForm);
             document.getElementById('form-expense')?.addEventListener('submit', handleExpenseForm);
             document.getElementById('form-category')?.addEventListener('submit', handleCategoryForm);
+            document.getElementById('form-edit-receivable')?.addEventListener('submit', handleEditReceivable);
             
             document.querySelectorAll('.btn-delete-category').forEach(btn => btn.addEventListener('click', () => handleDeleteCategory(btn.dataset.id)));
             
@@ -1571,7 +1676,6 @@
                         installmentsContainer.classList.add('hidden');
                     }
                 });
-                // Trigger change on modal open
                 if (paymentMethodSelect.value === 'A Prazo') installmentsContainer.classList.remove('hidden');
             }
         }
