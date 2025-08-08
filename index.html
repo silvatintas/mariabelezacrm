@@ -17,10 +17,16 @@
         .bg-brand-pink { background-color: #f472b6; }
         .border-brand-pink { border-color: #f472b6; }
         .ring-brand-pink { --tw-ring-color: #f472b6; }
-        .sidebar-icon { stroke-width: 1.5; }
+        .nav-link.active {
+            color: #f472b6;
+            border-bottom-color: #f472b6;
+            background-color: #fce7f3;
+        }
         .tab-link.active { color: #f472b6; border-color: #f472b6; }
-        /* Mobile sidebar */
-        .sidebar-mobile-closed { transform: translateX(-100%); }
+        /* Custom scrollbar for nav */
+        #main-nav::-webkit-scrollbar { height: 4px; }
+        #main-nav::-webkit-scrollbar-thumb { background: #f472b6; border-radius: 10px; }
+        #main-nav::-webkit-scrollbar-track { background: #f1f5f9; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
@@ -50,63 +56,35 @@
     </div>
 
     <!-- Aplicação Principal (CRM) -->
-    <div id="app" class="hidden">
-        <div class="relative flex h-screen bg-gray-100 overflow-hidden">
-            <!-- Sidebar -->
-            <aside id="sidebar" class="absolute lg:relative w-64 h-full flex-shrink-0 bg-white border-r border-slate-200 flex flex-col z-20 sidebar-mobile-closed lg:sidebar-mobile-open transition-transform duration-300 ease-in-out">
-                <div class="h-20 flex items-center justify-center border-b border-slate-200">
-                    <h1 class="text-2xl font-bold brand-pink">Maria Beleza</h1>
+    <div id="app" class="hidden flex flex-col h-screen">
+        <header class="bg-white shadow-md sticky top-0 z-30">
+            <div class="container mx-auto flex justify-between items-center p-4">
+                <h1 class="text-xl sm:text-2xl font-bold brand-pink">Maria Beleza</h1>
+                <div class="text-right">
+                    <p class="text-xs text-slate-500">Usuário:</p>
+                    <p id="user-name-display" class="text-sm font-semibold text-slate-800"></p>
                 </div>
-                <nav id="main-nav" class="flex-1 px-4 py-6 space-y-2">
-                    <a href="#" data-view="dashboard" class="nav-link flex items-center px-4 py-3 text-slate-700 rounded-lg hover:bg-pink-50 bg-pink-100 font-semibold">
-                        <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3 sidebar-icon"></i> Início
-                    </a>
-                    <a href="#" data-view="orcamento" class="nav-link flex items-center px-4 py-3 text-slate-700 rounded-lg hover:bg-pink-50">
-                        <i data-lucide="file-text" class="w-5 h-5 mr-3 sidebar-icon"></i> Orçamento
-                    </a>
-                    <a href="#" data-view="vendas" class="nav-link flex items-center px-4 py-3 text-slate-700 rounded-lg hover:bg-pink-50">
-                        <i data-lucide="shopping-cart" class="w-5 h-5 mr-3 sidebar-icon"></i> Vendas
-                    </a>
-                    <a href="#" data-view="financeiro" class="nav-link flex items-center px-4 py-3 text-slate-700 rounded-lg hover:bg-pink-50">
-                        <i data-lucide="piggy-bank" class="w-5 h-5 mr-3 sidebar-icon"></i> Financeiro
-                    </a>
-                    <a href="#" data-view="clientes" class="nav-link flex items-center px-4 py-3 text-slate-700 rounded-lg hover:bg-pink-50">
-                        <i data-lucide="users" class="w-5 h-5 mr-3 sidebar-icon"></i> Clientes
-                    </a>
-                    <a href="#" data-view="produtos" class="nav-link flex items-center px-4 py-3 text-slate-700 rounded-lg hover:bg-pink-50">
-                        <i data-lucide="package" class="w-5 h-5 mr-3 sidebar-icon"></i> Produtos
-                    </a>
-                    <a href="#" data-view="estoque" class="nav-link flex items-center px-4 py-3 text-slate-700 rounded-lg hover:bg-pink-50">
-                        <i data-lucide="archive" class="w-5 h-5 mr-3 sidebar-icon"></i> Estoque
-                    </a>
-                    <a href="#" data-view="cobranca" class="nav-link flex items-center px-4 py-3 text-slate-700 rounded-lg hover:bg-pink-50">
-                        <i data-lucide="dollar-sign" class="w-5 h-5 mr-3 sidebar-icon"></i> Cobrança
-                    </a>
-                    <a href="#" data-view="opcoes" class="nav-link flex items-center px-4 py-3 text-slate-700 rounded-lg hover:bg-pink-50">
-                        <i data-lucide="settings" class="w-5 h-5 mr-3 sidebar-icon"></i> Opções
-                    </a>
-                </nav>
-                 <div class="p-4 border-t border-slate-200">
-                    <p class="text-sm font-medium text-slate-600">Usuário:</p>
-                    <p id="user-name-display" class="text-sm text-slate-800 font-semibold break-all"></p>
-                </div>
-            </aside>
-
-            <!-- Conteúdo Principal -->
-            <div class="flex-1 flex flex-col">
-                <header class="lg:hidden flex justify-between items-center bg-white p-4 border-b">
-                    <button id="hamburger-btn" class="p-2">
-                        <i data-lucide="menu" class="w-6 h-6"></i>
-                    </button>
-                    <h2 id="mobile-header-title" class="text-lg font-bold brand-pink">Início</h2>
-                </header>
-                <main class="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
-                    <div id="view-container">
-                        <!-- As views serão renderizadas aqui -->
-                    </div>
-                </main>
             </div>
-        </div>
+            <nav id="main-nav" class="bg-slate-100 border-t border-b border-slate-200 overflow-x-auto whitespace-nowrap">
+                <div class="container mx-auto flex">
+                    <a href="#" data-view="dashboard" class="nav-link font-medium text-slate-700 px-4 py-3 border-b-2 border-transparent hover:bg-slate-200 transition-colors active">Início</a>
+                    <a href="#" data-view="orcamento" class="nav-link font-medium text-slate-700 px-4 py-3 border-b-2 border-transparent hover:bg-slate-200 transition-colors">Orçamento</a>
+                    <a href="#" data-view="vendas" class="nav-link font-medium text-slate-700 px-4 py-3 border-b-2 border-transparent hover:bg-slate-200 transition-colors">Vendas</a>
+                    <a href="#" data-view="financeiro" class="nav-link font-medium text-slate-700 px-4 py-3 border-b-2 border-transparent hover:bg-slate-200 transition-colors">Financeiro</a>
+                    <a href="#" data-view="clientes" class="nav-link font-medium text-slate-700 px-4 py-3 border-b-2 border-transparent hover:bg-slate-200 transition-colors">Clientes</a>
+                    <a href="#" data-view="produtos" class="nav-link font-medium text-slate-700 px-4 py-3 border-b-2 border-transparent hover:bg-slate-200 transition-colors">Produtos</a>
+                    <a href="#" data-view="estoque" class="nav-link font-medium text-slate-700 px-4 py-3 border-b-2 border-transparent hover:bg-slate-200 transition-colors">Estoque</a>
+                    <a href="#" data-view="cobranca" class="nav-link font-medium text-slate-700 px-4 py-3 border-b-2 border-transparent hover:bg-slate-200 transition-colors">Cobrança</a>
+                    <a href="#" data-view="opcoes" class="nav-link font-medium text-slate-700 px-4 py-3 border-b-2 border-transparent hover:bg-slate-200 transition-colors">Opções</a>
+                </div>
+            </nav>
+        </header>
+
+        <main class="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto bg-gray-100">
+            <div id="view-container" class="container mx-auto">
+                <!-- As views serão renderizadas aqui -->
+            </div>
+        </main>
     </div>
     
     <!-- Modal Genérico -->
@@ -195,7 +173,6 @@
             onSnapshot(query(collection(db, dbPaths.quotes)), s => { state.quotes = s.docs.map(d => ({ id: d.id, ...d.data() })); if (state.currentView === 'orcamento') render(); });
             onSnapshot(query(collection(db, dbPaths.users)), s => { state.users = s.docs.map(d => ({ id: d.id, ...d.data() })); if (state.currentView === 'opcoes') render(); });
             
-            // Online users listener
             const sessionsQuery = query(collection(db, dbPaths.sessions));
             onSnapshot(sessionsQuery, (snapshot) => {
                 const now = Date.now();
@@ -231,7 +208,7 @@
                 
                 setupListeners();
                 updateUserSession();
-                setInterval(updateUserSession, 30000); // Update every 30 seconds
+                setInterval(updateUserSession, 30000);
 
                 lucide.createIcons();
                 navigateTo('dashboard');
@@ -256,20 +233,15 @@
 
         // --- ROTEAMENTO E RENDERIZAÇÃO ---
         const viewContainer = document.getElementById('view-container');
-        const navLinks = document.querySelectorAll('.nav-link');
 
         function navigateTo(view) {
             state.currentView = view;
-            navLinks.forEach(link => {
-                link.classList.remove('bg-pink-100', 'font-semibold');
-                const linkView = link.dataset.view;
-                if (linkView === view) {
-                    link.classList.add('bg-pink-100', 'font-semibold');
-                    document.getElementById('mobile-header-title').textContent = link.textContent.trim();
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+                if (link.dataset.view === view) {
+                    link.classList.add('active');
                 }
             });
-            // Close mobile sidebar on navigation
-            document.getElementById('sidebar').classList.add('sidebar-mobile-closed');
             render();
         }
 
@@ -279,10 +251,6 @@
                 e.preventDefault();
                 navigateTo(link.dataset.view);
             }
-        });
-        
-        document.getElementById('hamburger-btn').addEventListener('click', () => {
-             document.getElementById('sidebar').classList.toggle('sidebar-mobile-closed');
         });
 
         function render() {
@@ -325,42 +293,10 @@
             return `
                 <h2 class="text-3xl font-bold text-slate-800 mb-6">Painel de Controle</h2>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div class="bg-white p-6 rounded-lg shadow">
-                        <div class="flex items-center">
-                            <div class="p-3 rounded-full bg-pink-100"><i data-lucide="users" class="w-6 h-6 brand-pink"></i></div>
-                            <div class="ml-4">
-                                <p class="text-sm text-slate-500">Total de Clientes</p>
-                                <p class="text-2xl font-bold">${totalClients}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white p-6 rounded-lg shadow">
-                        <div class="flex items-center">
-                            <div class="p-3 rounded-full bg-pink-100"><i data-lucide="package" class="w-6 h-6 brand-pink"></i></div>
-                            <div class="ml-4">
-                                <p class="text-sm text-slate-500">Produtos Cadastrados</p>
-                                <p class="text-2xl font-bold">${totalProducts}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white p-6 rounded-lg shadow">
-                        <div class="flex items-center">
-                            <div class="p-3 rounded-full bg-pink-100"><i data-lucide="shopping-cart" class="w-6 h-6 brand-pink"></i></div>
-                            <div class="ml-4">
-                                <p class="text-sm text-slate-500">Vendas Realizadas</p>
-                                <p class="text-2xl font-bold">${totalSales}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white p-6 rounded-lg shadow">
-                        <div class="flex items-center">
-                            <div class="p-3 rounded-full bg-pink-100"><i data-lucide="bar-chart-2" class="w-6 h-6 brand-pink"></i></div>
-                            <div class="ml-4">
-                                <p class="text-sm text-slate-500">Receita Total</p>
-                                <p class="text-2xl font-bold">R$ ${totalRevenue.toFixed(2).replace('.',',')}</p>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow"><div class="flex items-center"><div class="p-3 rounded-full bg-pink-100"><i data-lucide="users" class="w-6 h-6 brand-pink"></i></div><div class="ml-4"><p class="text-sm text-slate-500">Total de Clientes</p><p class="text-2xl font-bold">${totalClients}</p></div></div></div>
+                    <div class="bg-white p-6 rounded-lg shadow"><div class="flex items-center"><div class="p-3 rounded-full bg-pink-100"><i data-lucide="package" class="w-6 h-6 brand-pink"></i></div><div class="ml-4"><p class="text-sm text-slate-500">Produtos Cadastrados</p><p class="text-2xl font-bold">${totalProducts}</p></div></div></div>
+                    <div class="bg-white p-6 rounded-lg shadow"><div class="flex items-center"><div class="p-3 rounded-full bg-pink-100"><i data-lucide="shopping-cart" class="w-6 h-6 brand-pink"></i></div><div class="ml-4"><p class="text-sm text-slate-500">Vendas Realizadas</p><p class="text-2xl font-bold">${totalSales}</p></div></div></div>
+                    <div class="bg-white p-6 rounded-lg shadow"><div class="flex items-center"><div class="p-3 rounded-full bg-pink-100"><i data-lucide="bar-chart-2" class="w-6 h-6 brand-pink"></i></div><div class="ml-4"><p class="text-sm text-slate-500">Receita Total</p><p class="text-2xl font-bold">R$ ${totalRevenue.toFixed(2).replace('.',',')}</p></div></div></div>
                 </div>
             `;
         }
@@ -369,25 +305,14 @@
             const totalCost = state.sales.flatMap(sale => sale.items).reduce((sum, item) => sum + ((item.cost || 0) * item.quantity), 0);
             const netProfit = totalRevenue - totalCost;
             const accountsReceivable = state.clients.reduce((sum, client) => sum + (client.debt || 0), 0);
-
             const salesBySeller = state.sales.reduce((acc, sale) => {
                 const sellerName = sale.sellerName || 'N/A';
-                if (!acc[sellerName]) {
-                    acc[sellerName] = { count: 0, total: 0 };
-                }
+                if (!acc[sellerName]) acc[sellerName] = { count: 0, total: 0 };
                 acc[sellerName].count++;
                 acc[sellerName].total += sale.total;
                 return acc;
             }, {});
-
-            const sellerRows = Object.entries(salesBySeller).map(([name, data]) => `
-                <tr class="border-b">
-                    <td class="p-4 font-medium">${name}</td>
-                    <td class="p-4 text-center">${data.count}</td>
-                    <td class="p-4 text-right font-semibold text-green-600">R$ ${data.total.toFixed(2).replace('.', ',')}</td>
-                </tr>
-            `).join('');
-
+            const sellerRows = Object.entries(salesBySeller).map(([name, data]) => `<tr class="border-b"><td class="p-4 font-medium">${name}</td><td class="p-4 text-center">${data.count}</td><td class="p-4 text-right font-semibold text-green-600">R$ ${data.total.toFixed(2).replace('.', ',')}</td></tr>`).join('');
             return `
                 <h2 class="text-3xl font-bold text-slate-800 mb-6">Painel Financeiro</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -396,24 +321,9 @@
                     <div class="bg-white p-6 rounded-lg shadow"><p class="text-sm text-slate-500">Contas a Receber</p><p class="text-3xl font-bold text-orange-500">R$ ${accountsReceivable.toFixed(2).replace('.', ',')}</p></div>
                 </div>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-white p-6 rounded-lg shadow">
-                        <h3 class="text-xl font-bold text-slate-800 mb-4">Relatório de Vendedores</h3>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-sm">
-                                <thead class="bg-slate-100 text-slate-600 uppercase"><tr><th class="p-4 text-left">Vendedor</th><th class="p-4 text-center">Nº Vendas</th><th class="p-4 text-right">Total Vendido</th></tr></thead>
-                                <tbody>${sellerRows || '<tr><td colspan="3" class="p-4 text-center">Nenhuma venda registrada.</td></tr>'}</tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div class="bg-white p-6 rounded-lg shadow">
-                        <h3 class="text-xl font-bold text-slate-800">Acesso Rápido</h3>
-                        <p class="text-slate-500 mt-2 mb-4">Gerencie as contas a receber de seus clientes.</p>
-                        <button id="btn-goto-cobranca" class="w-full bg-pink-400 text-white px-5 py-3 rounded-lg font-semibold hover:bg-pink-500 transition-colors flex items-center justify-center">
-                            <i data-lucide="dollar-sign" class="w-5 h-5 mr-2"></i> Ir para Cobrança
-                        </button>
-                    </div>
-                </div>
-            `;
+                    <div class="bg-white p-6 rounded-lg shadow"><h3 class="text-xl font-bold text-slate-800 mb-4">Relatório de Vendedores</h3><div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr><th class="p-4 text-left">Vendedor</th><th class="p-4 text-center">Nº Vendas</th><th class="p-4 text-right">Total Vendido</th></tr></thead><tbody>${sellerRows || '<tr><td colspan="3" class="p-4 text-center">Nenhuma venda registrada.</td></tr>'}</tbody></table></div></div>
+                    <div class="bg-white p-6 rounded-lg shadow"><h3 class="text-xl font-bold text-slate-800">Acesso Rápido</h3><p class="text-slate-500 mt-2 mb-4">Gerencie as contas a receber.</p><button id="btn-goto-cobranca" class="w-full bg-pink-400 text-white px-5 py-3 rounded-lg font-semibold hover:bg-pink-500 flex items-center justify-center"><i data-lucide="dollar-sign" class="w-5 h-5 mr-2"></i> Ir para Cobrança</button></div>
+                </div>`;
         }
         function renderClientes() {
             const clientReportData = state.clients.map(client => {
@@ -426,159 +336,27 @@
                 return { ...client, totalSpent, purchaseCount: clientSales.length, lastPurchaseDate, preferredProduct };
             }).sort((a, b) => b.totalSpent - a.totalSpent);
 
-            const clientsRows = state.clients.map(client => `
-                <tr class="border-b border-slate-200 hover:bg-slate-50">
-                    <td class="p-4">${client.code}</td>
-                    <td class="p-4 font-medium">${client.name}</td>
-                    <td class="p-4 hidden sm:table-cell">${client.cpf || 'N/A'}</td>
-                    <td class="p-4 hidden md:table-cell">${client.phone || 'N/A'}</td>
-                    <td class="p-4 flex gap-2">
-                        <button class="btn-edit-client p-2 text-blue-500 hover:text-blue-700" data-client-id="${client.id}"><i data-lucide="edit" class="w-5 h-5"></i></button>
-                        <button class="btn-delete-client p-2 text-red-500 hover:text-red-700" data-client-id="${client.id}"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
-                    </td>
-                </tr>
-            `).join('');
-
-            const reportRows = clientReportData.map(client => `
-                <tr class="border-b border-slate-200 hover:bg-slate-50">
-                    <td class="p-4 font-medium">${client.name}</td>
-                    <td class="p-4 font-semibold text-green-600">R$ ${client.totalSpent.toFixed(2).replace('.', ',')}</td>
-                    <td class="p-4 text-center hidden sm:table-cell">${client.purchaseCount}</td>
-                    <td class="p-4 text-center hidden md:table-cell">${client.lastPurchaseDate}</td>
-                    <td class="p-4">${client.preferredProduct}</td>
-                </tr>
-            `).join('');
+            const clientsRows = state.clients.map(client => `<tr class="border-b"><td class="p-4">${client.code}</td><td class="p-4 font-medium">${client.name}</td><td class="p-4 hidden sm:table-cell">${client.cpf||'N/A'}</td><td class="p-4 hidden md:table-cell">${client.phone||'N/A'}</td><td class="p-4 flex gap-2"><button class="btn-edit-client p-2 text-blue-500" data-client-id="${client.id}"><i data-lucide="edit" class="w-5 h-5"></i></button><button class="btn-delete-client p-2 text-red-500" data-client-id="${client.id}"><i data-lucide="trash-2" class="w-5 h-5"></i></button></td></tr>`).join('');
+            const reportRows = clientReportData.map(client => `<tr class="border-b"><td class="p-4 font-medium">${client.name}</td><td class="p-4 font-semibold text-green-600">R$ ${client.totalSpent.toFixed(2).replace('.',',')}</td><td class="p-4 text-center hidden sm:table-cell">${client.purchaseCount}</td><td class="p-4 text-center hidden md:table-cell">${client.lastPurchaseDate}</td><td class="p-4">${client.preferredProduct}</td></tr>`).join('');
 
             return `
-                <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
-                    <h2 class="text-3xl font-bold text-slate-800">Gerenciar Clientes</h2>
-                    <button id="btn-new-client" class="bg-pink-400 text-white px-5 py-3 rounded-lg font-semibold hover:bg-pink-500 transition-colors flex items-center">
-                        <i data-lucide="plus" class="w-5 h-5 mr-2"></i> Novo Cliente
-                    </button>
-                </div>
-                <div class="mb-4 border-b border-gray-200">
-                    <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="client-tabs">
-                        <li class="mr-2"><a href="#" class="tab-link inline-block p-4 border-b-2 rounded-t-lg active" data-tab="lista">Lista de Clientes</a></li>
-                        <li class="mr-2"><a href="#" class="tab-link inline-block p-4 border-b-2 rounded-t-lg" data-tab="relatorio">Relatório de Compras</a></li>
-                    </ul>
-                </div>
+                <div class="flex justify-between items-center mb-6 flex-wrap gap-4"><h2 class="text-3xl font-bold text-slate-800">Gerenciar Clientes</h2><button id="btn-new-client" class="bg-pink-400 text-white px-5 py-3 rounded-lg font-semibold hover:bg-pink-500 flex items-center"><i data-lucide="plus" class="w-5 h-5 mr-2"></i> Novo Cliente</button></div>
+                <div class="mb-4 border-b"><ul class="flex flex-wrap -mb-px text-sm font-medium text-center"><li class="mr-2"><a href="#" class="tab-link inline-block p-4 border-b-2 rounded-t-lg active" data-tab="lista">Lista</a></li><li class="mr-2"><a href="#" class="tab-link inline-block p-4 border-b-2 rounded-t-lg" data-tab="relatorio">Relatório</a></li></ul></div>
                 <div id="tab-content">
-                    <div id="tab-lista" class="tab-pane">
-                        <div class="bg-white rounded-lg shadow overflow-hidden">
-                            <div class="overflow-x-auto">
-                                <table class="w-full text-sm text-left">
-                                    <thead class="bg-slate-100 text-slate-600 uppercase">
-                                        <tr>
-                                            <th class="p-4">Cód.</th>
-                                            <th class="p-4">Nome</th>
-                                            <th class="p-4 hidden sm:table-cell">CPF</th>
-                                            <th class="p-4 hidden md:table-cell">Telefone</th>
-                                            <th class="p-4">Ações</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>${clientsRows || '<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhum cliente cadastrado.</td></tr>'}</tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="tab-relatorio" class="tab-pane hidden">
-                        <div class="bg-white rounded-lg shadow overflow-hidden">
-                            <div class="overflow-x-auto">
-                                <table class="w-full text-sm text-left">
-                                    <thead class="bg-slate-100 text-slate-600 uppercase">
-                                        <tr>
-                                            <th class="p-4">Cliente</th>
-                                            <th class="p-4">Total Gasto</th>
-                                            <th class="p-4 text-center hidden sm:table-cell">Nº Compras</th>
-                                            <th class="p-4 text-center hidden md:table-cell">Última Compra</th>
-                                            <th class="p-4">Produto Preferido</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>${reportRows || '<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhum dado para o relatório.</td></tr>'}</tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
+                    <div id="tab-lista" class="tab-pane"><div class="bg-white rounded-lg shadow overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr><th class="p-4">Cód.</th><th class="p-4">Nome</th><th class="p-4 hidden sm:table-cell">CPF</th><th class="p-4 hidden md:table-cell">Telefone</th><th class="p-4">Ações</th></tr></thead><tbody>${clientsRows||'<tr><td colspan="5" class="p-4 text-center">Nenhum cliente.</td></tr>'}</tbody></table></div></div></div>
+                    <div id="tab-relatorio" class="tab-pane hidden"><div class="bg-white rounded-lg shadow overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr><th class="p-4">Cliente</th><th class="p-4">Gasto Total</th><th class="p-4 text-center hidden sm:table-cell">Nº Compras</th><th class="p-4 text-center hidden md:table-cell">Última Compra</th><th class="p-4">Produto Preferido</th></tr></thead><tbody>${reportRows||'<tr><td colspan="5" class="p-4 text-center">Nenhum dado.</td></tr>'}</tbody></table></div></div></div>
+                </div>`;
         }
         function renderProdutos() {
-            const productsByBrand = state.products.reduce((acc, p) => {
-                const brand = p.brand || 'Sem Marca';
-                if (!acc[brand]) acc[brand] = [];
-                acc[brand].push(p);
-                return acc;
-            }, {});
-
-            const brandHtml = Object.entries(productsByBrand).map(([brand, products]) => `
-                <div class="mb-8">
-                    <h3 class="text-xl font-bold text-slate-700 mb-4 border-b pb-2">${brand}</h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
-                        ${products.map(pr => `
-                            <div class="bg-white p-4 rounded-lg shadow-md border border-slate-200 flex flex-col justify-between">
-                                <p class="font-bold text-lg">${pr.name}</p>
-                                <div>
-                                    <p class="text-slate-500 text-sm">Custo: <span class="font-semibold text-red-600">R$ ${parseFloat(pr.cost || 0).toFixed(2).replace('.',',')}</span></p>
-                                    <p class="text-slate-500 text-sm">Preço: <span class="font-semibold text-green-600">R$ ${parseFloat(pr.price).toFixed(2).replace('.',',')}</span></p>
-                                    <p class="text-slate-500 text-sm">Estoque: <span class="font-semibold text-slate-700">${pr.quantity}</span></p>
-                                </div>
-                            </div>`).join('')}
-                    </div>
-                </div>
-            `).join('');
-
-            return `
-                <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
-                    <h2 class="text-3xl font-bold text-slate-800">Gerenciar Produtos</h2>
-                    <button id="btn-new-product" class="bg-pink-400 text-white px-5 py-3 rounded-lg font-semibold hover:bg-pink-500 transition-colors flex items-center">
-                        <i data-lucide="plus" class="w-5 h-5 mr-2"></i> Novo Produto
-                    </button>
-                </div>
-                ${state.products.length > 0 ? brandHtml : '<div class="bg-white p-6 rounded-lg shadow text-center text-slate-500">Nenhum produto cadastrado.</div>'}
-            `;
+            const productsByBrand = state.products.reduce((acc, p) => { const brand = p.brand || 'Sem Marca'; if (!acc[brand]) acc[brand] = []; acc[brand].push(p); return acc; }, {});
+            const brandHtml = Object.entries(productsByBrand).map(([brand, products]) => `<div class="mb-8"><h3 class="text-xl font-bold text-slate-700 mb-4 border-b pb-2">${brand}</h3><div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">${products.map(pr => `<div class="bg-white p-4 rounded-lg shadow-md border"><p class="font-bold text-lg">${pr.name}</p><div><p class="text-sm">Custo: <span class="font-semibold text-red-600">R$ ${parseFloat(pr.cost||0).toFixed(2).replace('.',',')}</span></p><p class="text-sm">Preço: <span class="font-semibold text-green-600">R$ ${parseFloat(pr.price).toFixed(2).replace('.',',')}</span></p><p class="text-sm">Estoque: <span class="font-semibold">${pr.quantity}</span></p></div></div>`).join('')}</div></div>`).join('');
+            return `<div class="flex justify-between items-center mb-6 flex-wrap gap-4"><h2 class="text-3xl font-bold text-slate-800">Produtos</h2><button id="btn-new-product" class="bg-pink-400 text-white px-5 py-3 rounded-lg font-semibold hover:bg-pink-500 flex items-center"><i data-lucide="plus" class="w-5 h-5 mr-2"></i> Novo Produto</button></div>${state.products.length > 0 ? brandHtml : '<div class="bg-white p-6 rounded-lg shadow text-center">Nenhum produto cadastrado.</div>'}`;
         }
         function renderEstoque() {
             const salesCount = state.sales.flatMap(s => s.items).reduce((a, i) => { a[i.productId] = (a[i.productId] || 0) + i.quantity; return a; }, {});
             const productsWithSales = state.products.map(p => ({ ...p, sold: salesCount[p.id] || 0 })).sort((a, b) => b.sold - a.sold);
-            
-            const stockRows = productsWithSales.map(pr => `
-                <tr class="border-b">
-                    <td class="p-4 font-medium">${pr.name}</td>
-                    <td class="p-4 hidden sm:table-cell">${pr.brand || 'N/A'}</td>
-                    <td class="p-4 text-center font-semibold ${pr.quantity <= 5 ? 'text-red-500' : 'text-slate-700'}">${pr.quantity}</td>
-                    <td class="p-4 text-center font-semibold text-blue-600">${pr.sold}</td>
-                    <td class="p-4 text-center">
-                        <button data-product-id="${pr.id}" data-action="add" class="btn-stock-update p-2 text-green-500 hover:text-green-700"><i data-lucide="plus-circle" class="w-5 h-5"></i></button>
-                        <button data-product-id="${pr.id}" data-action="remove" class="btn-stock-update p-2 text-red-500 hover:text-red-700"><i data-lucide="minus-circle" class="w-5 h-5"></i></button>
-                    </td>
-                </tr>`).join('');
-
-            return `
-                <h2 class="text-3xl font-bold text-slate-800 mb-6">Controle de Estoque</h2>
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-white rounded-lg shadow overflow-hidden">
-                        <div class="p-4"><h3 class="text-lg font-bold">Análise de Saída</h3></div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-sm text-left">
-                                <thead class="bg-slate-100 text-slate-600 uppercase">
-                                    <tr>
-                                        <th class="p-4">Produto</th>
-                                        <th class="p-4 hidden sm:table-cell">Marca</th>
-                                        <th class="p-4 text-center">Estoque</th>
-                                        <th class="p-4 text-center">Vendidos</th>
-                                        <th class="p-4 text-center">Ajustar</th>
-                                    </tr>
-                                </thead>
-                                <tbody>${stockRows || '<tr><td colspan="5" class="p-4 text-center">Nenhum produto.</td></tr>'}</tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <h3 class="text-lg font-bold mb-4">Produtos Mais Vendidos</h3>
-                        <canvas id="salesChart"></canvas>
-                    </div>
-                </div>
-            `;
+            const stockRows = productsWithSales.map(pr => `<tr class="border-b"><td class="p-4 font-medium">${pr.name}</td><td class="p-4 hidden sm:table-cell">${pr.brand||'N/A'}</td><td class="p-4 text-center font-semibold ${pr.quantity<=5?'text-red-500':'text-slate-700'}">${pr.quantity}</td><td class="p-4 text-center font-semibold text-blue-600">${pr.sold}</td><td class="p-4 text-center"><button data-product-id="${pr.id}" data-action="add" class="btn-stock-update p-2 text-green-500"><i data-lucide="plus-circle" class="w-5 h-5"></i></button><button data-product-id="${pr.id}" data-action="remove" class="btn-stock-update p-2 text-red-500"><i data-lucide="minus-circle" class="w-5 h-5"></i></button></td></tr>`).join('');
+            return `<h2 class="text-3xl font-bold text-slate-800 mb-6">Controle de Estoque</h2><div class="grid grid-cols-1 lg:grid-cols-2 gap-6"><div class="bg-white rounded-lg shadow overflow-hidden"><div class="p-4"><h3 class="text-lg font-bold">Análise de Saída</h3></div><div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr><th class="p-4">Produto</th><th class="p-4 hidden sm:table-cell">Marca</th><th class="p-4 text-center">Estoque</th><th class="p-4 text-center">Vendidos</th><th class="p-4 text-center">Ajustar</th></tr></thead><tbody>${stockRows||'<tr><td colspan="5" class="p-4 text-center">Nenhum produto.</td></tr>'}</tbody></table></div></div><div class="bg-white rounded-lg shadow p-6"><h3 class="text-lg font-bold mb-4">Produtos Mais Vendidos</h3><canvas id="salesChart"></canvas></div></div>`;
         }
         function renderSalesChart() {
             const ctx = document.getElementById('salesChart');
@@ -589,160 +367,22 @@
             salesChart = new Chart(ctx, { type: 'bar', data: { labels: sortedProducts.map(([name]) => name), datasets: [{ label: 'Unidades Vendidas', data: sortedProducts.map(([, count]) => count), backgroundColor: 'rgba(244, 114, 182, 0.6)', borderColor: 'rgba(244, 114, 182, 1)', borderWidth: 1 }] }, options: { indexAxis: 'y', scales: { x: { beginAtZero: true } }, responsive: true, plugins: { legend: { display: false }, title: { display: true, text: 'Top 10 Produtos por Unidades Vendidas' } } } });
         }
         function renderVendas() {
-            const salesRows = state.sales.sort((a, b) => b.date.toDate() - a.date.toDate()).map(s => {
-                const c = state.clients.find(cl => cl.id === s.clientId);
-                return `
-                    <tr class="border-b">
-                        <td class="p-4">${s.date.toDate().toLocaleDateString('pt-BR')}</td>
-                        <td class="p-4 font-medium">${c ? c.name : 'Consumidor'}</td>
-                        <td class="p-4 text-center hidden sm:table-cell">${s.items.reduce((a, i) => a + i.quantity, 0)}</td>
-                        <td class="p-4 text-right font-semibold text-green-600">R$ ${s.total.toFixed(2).replace('.',',')}</td>
-                        <td class="p-4 hidden md:table-cell">${s.paymentMethod}</td>
-                        <td class="p-4 hidden lg:table-cell">${s.sellerName || 'N/A'}</td>
-                    </tr>`;
-            }).join('');
-
-            return `
-                <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
-                    <h2 class="text-3xl font-bold text-slate-800">Registro de Vendas</h2>
-                    <button id="btn-new-sale" class="bg-pink-400 text-white px-5 py-3 rounded-lg font-semibold hover:bg-pink-500 transition-colors flex items-center">
-                        <i data-lucide="plus" class="w-5 h-5 mr-2"></i> Nova Venda
-                    </button>
-                </div>
-                <div class="bg-white rounded-lg shadow overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm">
-                            <thead class="bg-slate-100 text-slate-600 uppercase">
-                                <tr>
-                                    <th class="p-4 text-left">Data</th>
-                                    <th class="p-4 text-left">Cliente</th>
-                                    <th class="p-4 text-center hidden sm:table-cell">Itens</th>
-                                    <th class="p-4 text-right">Total</th>
-                                    <th class="p-4 text-left hidden md:table-cell">Pagamento</th>
-                                    <th class="p-4 text-left hidden lg:table-cell">Vendedor</th>
-                                </tr>
-                            </thead>
-                            <tbody>${salesRows || '<tr><td colspan="6" class="p-4 text-center">Nenhuma venda registrada.</td></tr>'}</tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
+            const salesRows = state.sales.sort((a, b) => b.date.toDate() - a.date.toDate()).map(s => { const c = state.clients.find(cl => cl.id === s.clientId); return `<tr class="border-b"><td class="p-4">${s.date.toDate().toLocaleDateString('pt-BR')}</td><td class="p-4 font-medium">${c?c.name:'Consumidor'}</td><td class="p-4 text-center hidden sm:table-cell">${s.items.reduce((a,i)=>a+i.quantity,0)}</td><td class="p-4 text-right font-semibold text-green-600">R$ ${s.total.toFixed(2).replace('.',',')}</td><td class="p-4 hidden md:table-cell">${s.paymentMethod}</td><td class="p-4 hidden lg:table-cell">${s.sellerName||'N/A'}</td></tr>`; }).join('');
+            return `<div class="flex justify-between items-center mb-6 flex-wrap gap-4"><h2 class="text-3xl font-bold text-slate-800">Registro de Vendas</h2><button id="btn-new-sale" class="bg-pink-400 text-white px-5 py-3 rounded-lg font-semibold hover:bg-pink-500 flex items-center"><i data-lucide="plus" class="w-5 h-5 mr-2"></i> Nova Venda</button></div><div class="bg-white rounded-lg shadow overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr><th class="p-4 text-left">Data</th><th class="p-4 text-left">Cliente</th><th class="p-4 text-center hidden sm:table-cell">Itens</th><th class="p-4 text-right">Total</th><th class="p-4 hidden md:table-cell">Pagamento</th><th class="p-4 hidden lg:table-cell">Vendedor</th></tr></thead><tbody>${salesRows||'<tr><td colspan="6" class="p-4 text-center">Nenhuma venda.</td></tr>'}</tbody></table></div></div>`;
         }
         function renderOrcamentos() {
-            const quoteRows = state.quotes.sort((a, b) => b.date.toDate() - a.date.toDate()).map(q => {
-                const c = state.clients.find(cl => cl.id === q.clientId);
-                return `
-                    <tr class="border-b">
-                        <td class="p-4">${q.date.toDate().toLocaleDateString('pt-BR')}</td>
-                        <td class="p-4 font-medium">${c ? c.name : 'Consumidor'}</td>
-                        <td class="p-4 text-center">${q.items.reduce((a, i) => a + i.quantity, 0)}</td>
-                        <td class="p-4 text-right font-semibold text-blue-600">R$ ${q.total.toFixed(2).replace('.',',')}</td>
-                        <td class="p-4 text-center">
-                            <button data-quote-id="${q.id}" class="btn-convert-quote bg-green-500 text-white px-4 py-2 rounded-lg text-xs font-semibold hover:bg-green-600 flex items-center">
-                                <i data-lucide="arrow-right-circle" class="w-4 h-4 mr-1"></i> Ir para Venda
-                            </button>
-                        </td>
-                    </tr>`;
-            }).join('');
-
-            return `
-                <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
-                    <h2 class="text-3xl font-bold text-slate-800">Orçamentos</h2>
-                    <button id="btn-new-quote" class="bg-pink-400 text-white px-5 py-3 rounded-lg font-semibold hover:bg-pink-500 transition-colors flex items-center">
-                        <i data-lucide="plus" class="w-5 h-5 mr-2"></i> Novo Orçamento
-                    </button>
-                </div>
-                <div class="bg-white rounded-lg shadow overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm">
-                            <thead class="bg-slate-100 text-slate-600 uppercase">
-                                <tr>
-                                    <th class="p-4 text-left">Data</th>
-                                    <th class="p-4 text-left">Cliente</th>
-                                    <th class="p-4 text-center">Itens</th>
-                                    <th class="p-4 text-right">Total</th>
-                                    <th class="p-4 text-center">Ação</th>
-                                </tr>
-                            </thead>
-                            <tbody>${quoteRows || '<tr><td colspan="5" class="p-4 text-center">Nenhum orçamento registrado.</td></tr>'}</tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
+            const quoteRows = state.quotes.sort((a, b) => b.date.toDate() - a.date.toDate()).map(q => { const c = state.clients.find(cl => cl.id === q.clientId); return `<tr class="border-b"><td class="p-4">${q.date.toDate().toLocaleDateString('pt-BR')}</td><td class="p-4 font-medium">${c?c.name:'Consumidor'}</td><td class="p-4 text-center">${q.items.reduce((a,i)=>a+i.quantity,0)}</td><td class="p-4 text-right font-semibold text-blue-600">R$ ${q.total.toFixed(2).replace('.',',')}</td><td class="p-4 text-center"><button data-quote-id="${q.id}" class="btn-convert-quote bg-green-500 text-white px-4 py-2 rounded-lg text-xs font-semibold hover:bg-green-600 flex items-center"><i data-lucide="arrow-right-circle" class="w-4 h-4 mr-1"></i> Ir para Venda</button></td></tr>`; }).join('');
+            return `<div class="flex justify-between items-center mb-6 flex-wrap gap-4"><h2 class="text-3xl font-bold text-slate-800">Orçamentos</h2><button id="btn-new-quote" class="bg-pink-400 text-white px-5 py-3 rounded-lg font-semibold hover:bg-pink-500 flex items-center"><i data-lucide="plus" class="w-5 h-5 mr-2"></i> Novo Orçamento</button></div><div class="bg-white rounded-lg shadow overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr><th class="p-4 text-left">Data</th><th class="p-4 text-left">Cliente</th><th class="p-4 text-center">Itens</th><th class="p-4 text-right">Total</th><th class="p-4 text-center">Ação</th></tr></thead><tbody>${quoteRows||'<tr><td colspan="5" class="p-4 text-center">Nenhum orçamento.</td></tr>'}</tbody></table></div></div>`;
         }
         function renderCobranca() {
             const debtors = state.clients.filter(client => client.debt && client.debt > 0);
-            const debtorsRows = debtors.map(client => `
-                <tr class="border-b border-slate-200 hover:bg-slate-50">
-                    <td class="p-4 font-medium">${client.name}</td>
-                    <td class="p-4 font-semibold text-red-600">R$ ${client.debt.toFixed(2).replace('.', ',')}</td>
-                    <td class="p-4 hidden sm:table-cell">${client.phone}</td>
-                    <td class="p-4">
-                        <button data-client-id="${client.id}" data-client-name="${client.name}" data-client-debt="${client.debt}" class="btn-receive-payment bg-green-500 text-white px-4 py-2 rounded-lg text-xs font-semibold hover:bg-green-600 flex items-center">
-                           <i data-lucide="check" class="w-4 h-4 mr-1"></i> Receber
-                        </button>
-                    </td>
-                </tr>`).join('');
-
-            return `
-                <h2 class="text-3xl font-bold text-slate-800 mb-6">Controle de Cobrança</h2>
-                <div class="bg-white rounded-lg shadow overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm text-left">
-                            <thead class="bg-slate-100 text-slate-600 uppercase">
-                                <tr>
-                                    <th class="p-4">Cliente Devedor</th>
-                                    <th class="p-4">Valor Devido</th>
-                                    <th class="p-4 hidden sm:table-cell">Telefone</th>
-                                    <th class="p-4">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>${debtorsRows || '<tr><td colspan="4" class="p-4 text-center text-slate-500">Nenhum cliente com saldo devedor.</td></tr>'}</tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
+            const debtorsRows = debtors.map(client => `<tr class="border-b"><td class="p-4 font-medium">${client.name}</td><td class="p-4 font-semibold text-red-600">R$ ${client.debt.toFixed(2).replace('.',',')}</td><td class="p-4 hidden sm:table-cell">${client.phone}</td><td class="p-4"><button data-client-id="${client.id}" data-client-name="${client.name}" data-client-debt="${client.debt}" class="btn-receive-payment bg-green-500 text-white px-4 py-2 rounded-lg text-xs font-semibold hover:bg-green-600 flex items-center"><i data-lucide="check" class="w-4 h-4 mr-1"></i> Receber</button></td></tr>`).join('');
+            return `<h2 class="text-3xl font-bold text-slate-800 mb-6">Controle de Cobrança</h2><div class="bg-white rounded-lg shadow overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr><th class="p-4">Cliente Devedor</th><th class="p-4">Valor Devido</th><th class="p-4 hidden sm:table-cell">Telefone</th><th class="p-4">Ações</th></tr></thead><tbody>${debtorsRows||'<tr><td colspan="4" class="p-4 text-center">Nenhum cliente com saldo devedor.</td></tr>'}</tbody></table></div></div>`;
         }
         function renderOpcoes() {
-            const userRows = state.users.filter(u => u.username !== 'Admin').map(user => `
-                <tr class="border-b">
-                    <td class="p-4 font-medium">${user.username}</td>
-                    <td class="p-4">${user.role}</td>
-                    <td class="p-4 flex gap-2">
-                        <button class="btn-edit-user p-2 text-blue-500 hover:text-blue-700" data-user-id="${user.id}"><i data-lucide="key" class="w-5 h-5"></i></button>
-                        <button class="btn-delete-user p-2 text-red-500 hover:text-red-700" data-user-id="${user.id}"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
-                    </td>
-                </tr>
-            `).join('');
-
-            const onlineUserRows = state.onlineUsers.map(user => `
-                <li class="flex items-center gap-2">
-                    <span class="w-2 h-2 bg-green-500 rounded-full"></span>
-                    <span>${user.username}</span>
-                </li>
-            `).join('');
-
-            return `
-                <h2 class="text-3xl font-bold text-slate-800 mb-6">Opções do Sistema</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="md:col-span-2 bg-white p-6 rounded-lg shadow">
-                        <h3 class="text-xl font-bold text-slate-800 mb-4">Gerenciar Usuários</h3>
-                        <button id="btn-new-user" class="w-full mb-4 bg-pink-400 text-white px-5 py-3 rounded-lg font-semibold hover:bg-pink-500 transition-colors flex items-center justify-center">
-                            <i data-lucide="user-plus" class="w-5 h-5 mr-2"></i> Adicionar Novo Usuário
-                        </button>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-sm">
-                                <thead class="bg-slate-100 text-slate-600 uppercase"><tr><th class="p-4 text-left">Usuário</th><th class="p-4 text-left">Função</th><th class="p-4 text-left">Ações</th></tr></thead>
-                                <tbody>${userRows || '<tr><td colspan="3" class="p-4 text-center">Nenhum usuário cadastrado.</td></tr>'}</tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div class="bg-white p-6 rounded-lg shadow">
-                        <h3 class="text-xl font-bold text-slate-800 mb-4">Usuários Online</h3>
-                        <ul class="space-y-2">${onlineUserRows || '<li class="text-slate-500">Nenhum usuário online.</li>'}</ul>
-                    </div>
-                </div>
-            `;
+            const userRows = state.users.filter(u => u.username !== 'Admin').map(user => `<tr class="border-b"><td class="p-4 font-medium">${user.username}</td><td class="p-4">${user.role}</td><td class="p-4 flex gap-2"><button class="btn-edit-user p-2 text-blue-500" data-user-id="${user.id}"><i data-lucide="key" class="w-5 h-5"></i></button><button class="btn-delete-user p-2 text-red-500" data-user-id="${user.id}"><i data-lucide="trash-2" class="w-5 h-5"></i></button></td></tr>`).join('');
+            const onlineUserRows = state.onlineUsers.map(user => `<li class="flex items-center gap-2"><span class="w-2 h-2 bg-green-500 rounded-full"></span><span>${user.username}</span></li>`).join('');
+            return `<h2 class="text-3xl font-bold text-slate-800 mb-6">Opções do Sistema</h2><div class="grid grid-cols-1 md:grid-cols-3 gap-6"><div class="md:col-span-2 bg-white p-6 rounded-lg shadow"><h3 class="text-xl font-bold text-slate-800 mb-4">Gerenciar Usuários</h3><button id="btn-new-user" class="w-full mb-4 bg-pink-400 text-white px-5 py-3 rounded-lg font-semibold hover:bg-pink-500 flex items-center justify-center"><i data-lucide="user-plus" class="w-5 h-5 mr-2"></i> Novo Usuário</button><div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr><th class="p-4 text-left">Usuário</th><th class="p-4 text-left">Função</th><th class="p-4 text-left">Ações</th></tr></thead><tbody>${userRows||'<tr><td colspan="3" class="p-4 text-center">Nenhum usuário.</td></tr>'}</tbody></table></div></div><div class="bg-white p-6 rounded-lg shadow"><h3 class="text-xl font-bold text-slate-800 mb-4">Usuários Online</h3><ul class="space-y-2">${onlineUserRows||'<li class="text-slate-500">Nenhum usuário online.</li>'}</ul></div></div>`;
         }
 
         // --- MODAIS E FORMULÁRIOS ---
@@ -771,15 +411,12 @@
                     <h3 class="text-2xl font-bold mb-4">${client ? 'Editar' : 'Cadastrar'} Cliente</h3>
                     <input type="hidden" name="id" value="${client?.id || ''}">
                     <div class="space-y-4">
-                        <div><label class="block text-sm font-medium">Nome Completo*</label><input type="text" name="name" required value="${client?.name || ''}" class="w-full mt-1 px-3 py-2 border rounded-md focus:ring-brand-pink focus:border-brand-pink"></div>
-                        <div><label class="block text-sm font-medium">CPF</label><input type="text" name="cpf" value="${client?.cpf || ''}" class="w-full mt-1 px-3 py-2 border rounded-md focus:ring-brand-pink focus:border-brand-pink"></div>
-                        <div><label class="block text-sm font-medium">Telefone</label><input type="tel" name="phone" value="${client?.phone || ''}" class="w-full mt-1 px-3 py-2 border rounded-md focus:ring-brand-pink focus:border-brand-pink"></div>
-                        <div><label class="block text-sm font-medium">Endereço</label><input type="text" name="address" value="${client?.address || ''}" class="w-full mt-1 px-3 py-2 border rounded-md focus:ring-brand-pink focus:border-brand-pink"></div>
+                        <div><label class="block text-sm font-medium">Nome Completo*</label><input type="text" name="name" required value="${client?.name || ''}" class="w-full mt-1 px-3 py-2 border rounded-md"></div>
+                        <div><label class="block text-sm font-medium">CPF</label><input type="text" name="cpf" value="${client?.cpf || ''}" class="w-full mt-1 px-3 py-2 border rounded-md"></div>
+                        <div><label class="block text-sm font-medium">Telefone</label><input type="tel" name="phone" value="${client?.phone || ''}" class="w-full mt-1 px-3 py-2 border rounded-md"></div>
+                        <div><label class="block text-sm font-medium">Endereço</label><input type="text" name="address" value="${client?.address || ''}" class="w-full mt-1 px-3 py-2 border rounded-md"></div>
                     </div>
-                    <div class="mt-6 flex justify-end space-x-3">
-                        <button type="button" id="btn-cancel-modal" class="px-5 py-3 bg-slate-200 rounded-lg hover:bg-slate-300">Cancelar</button>
-                        <button type="submit" class="px-5 py-3 bg-pink-400 text-white rounded-lg hover:bg-pink-500">Salvar Cliente</button>
-                    </div>
+                    <div class="mt-6 flex justify-end space-x-3"><button type="button" id="btn-cancel-modal" class="px-5 py-3 bg-slate-200 rounded-lg">Cancelar</button><button type="submit" class="px-5 py-3 bg-pink-400 text-white rounded-lg">Salvar</button></div>
                 </form>`;
         }
         
@@ -788,18 +425,15 @@
                 <form id="form-new-product">
                     <h3 class="text-2xl font-bold mb-4">Cadastrar Novo Produto</h3>
                     <div class="space-y-4">
-                        <div><label class="block text-sm font-medium">Nome do Produto*</label><input type="text" name="name" required class="w-full mt-1 px-3 py-2 border rounded-md"></div>
+                        <div><label class="block text-sm font-medium">Nome*</label><input type="text" name="name" required class="w-full mt-1 px-3 py-2 border rounded-md"></div>
                         <div><label class="block text-sm font-medium">Marca</label><input type="text" name="brand" class="w-full mt-1 px-3 py-2 border rounded-md"></div>
                         <div class="grid grid-cols-2 gap-4">
                             <div><label class="block text-sm font-medium">Custo (R$)*</label><input type="number" name="cost" required min="0" step="0.01" class="w-full mt-1 px-3 py-2 border rounded-md"></div>
                             <div><label class="block text-sm font-medium">Preço (R$)*</label><input type="number" name="price" required min="0" step="0.01" class="w-full mt-1 px-3 py-2 border rounded-md"></div>
                         </div>
-                        <div><label class="block text-sm font-medium">Quantidade Inicial*</label><input type="number" name="quantity" required min="0" class="w-full mt-1 px-3 py-2 border rounded-md"></div>
+                        <div><label class="block text-sm font-medium">Quantidade*</label><input type="number" name="quantity" required min="0" class="w-full mt-1 px-3 py-2 border rounded-md"></div>
                     </div>
-                    <div class="mt-6 flex justify-end space-x-3">
-                        <button type="button" id="btn-cancel-modal" class="px-5 py-3 bg-slate-200 rounded-lg hover:bg-slate-300">Cancelar</button>
-                        <button type="submit" class="px-5 py-3 bg-pink-400 text-white rounded-lg hover:bg-pink-500">Salvar Produto</button>
-                    </div>
+                    <div class="mt-6 flex justify-end space-x-3"><button type="button" id="btn-cancel-modal" class="px-5 py-3 bg-slate-200 rounded-lg">Cancelar</button><button type="submit" class="px-5 py-3 bg-pink-400 text-white rounded-lg">Salvar</button></div>
                 </form>
             `, 'max-w-lg');
         }
@@ -826,12 +460,9 @@
                             <p class="text-lg font-bold">TOTAL</p><p id="transaction-total" class="text-3xl font-bold text-green-600">R$ 0,00</p>
                         </div>
                     </div>
-                    ${isSale ? `<div class="mt-4"><label class="block text-sm font-medium">Forma de Pagamento*</label><select name="paymentMethod" required class="w-full mt-1 px-3 py-2 border rounded-md"><option value="Dinheiro">Dinheiro</option><option value="Pix">Pix</option><option value="Cartão de Débito">Cartão de Débito</option><option value="Cartão de Crédito">Cartão de Crédito</option><option value="A Prazo">A Prazo</option></select></div>` : ''}
+                    ${isSale ? `<div class="mt-4"><label class="block text-sm font-medium">Pagamento*</label><select name="paymentMethod" required class="w-full mt-1 px-3 py-2 border rounded-md"><option value="Dinheiro">Dinheiro</option><option value="Pix">Pix</option><option value="Cartão de Débito">Débito</option><option value="Cartão de Crédito">Crédito</option><option value="A Prazo">A Prazo</option></select></div>` : ''}
                     <div id="transaction-error" class="text-red-500 text-sm text-center mt-4 hidden"></div>
-                    <div class="mt-6 flex justify-end space-x-3">
-                        <button type="button" id="btn-cancel-modal" class="px-5 py-3 bg-slate-200 rounded-lg hover:bg-slate-300">Cancelar</button>
-                        <button type="submit" class="px-5 py-3 bg-pink-400 text-white rounded-lg hover:bg-pink-500">${buttonText}</button>
-                    </div>
+                    <div class="mt-6 flex justify-end space-x-3"><button type="button" id="btn-cancel-modal" class="px-5 py-3 bg-slate-200 rounded-lg">Cancelar</button><button type="submit" class="px-5 py-3 bg-pink-400 text-white rounded-lg">${buttonText}</button></div>
                 </form>`;
         }
         
@@ -839,16 +470,13 @@
              openModal(`
                 <form id="form-receive-payment">
                     <h3 class="text-2xl font-bold mb-2">Receber Pagamento</h3>
-                    <p class="mb-4 text-slate-600">Cliente: <span class="font-semibold">${clientName}</span></p>
+                    <p class="mb-4">Cliente: <span class="font-semibold">${clientName}</span></p>
                     <input type="hidden" name="clientId" value="${clientId}"><input type="hidden" name="currentDebt" value="${clientDebt}">
                     <div class="space-y-4">
                         <div><label class="block text-sm font-medium">Valor Devido</label><input type="text" readonly value="R$ ${parseFloat(clientDebt).toFixed(2)}" class="w-full mt-1 px-3 py-2 border rounded-md bg-slate-100"></div>
                         <div><label class="block text-sm font-medium">Valor a Receber*</label><input type="number" name="amount" required min="0.01" max="${clientDebt}" step="0.01" class="w-full mt-1 px-3 py-2 border rounded-md"></div>
                     </div>
-                    <div class="mt-6 flex justify-end space-x-3">
-                        <button type="button" id="btn-cancel-modal" class="px-5 py-3 bg-slate-200 rounded-lg hover:bg-slate-300">Cancelar</button>
-                        <button type="submit" class="px-5 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600">Confirmar</button>
-                    </div>
+                    <div class="mt-6 flex justify-end space-x-3"><button type="button" id="btn-cancel-modal" class="px-5 py-3 bg-slate-200 rounded-lg">Cancelar</button><button type="submit" class="px-5 py-3 bg-green-500 text-white rounded-lg">Confirmar</button></div>
                 </form>
             `, 'max-w-lg');
         }
@@ -859,20 +487,11 @@
                     <h3 class="text-2xl font-bold mb-4">${user ? 'Alterar Senha' : 'Novo Usuário'}</h3>
                     <input type="hidden" name="id" value="${user?.id || ''}">
                     <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium">Nome de Usuário</label>
-                            <input type="text" name="username" required ${user ? 'readonly' : ''} value="${user?.username || ''}" class="w-full mt-1 px-3 py-2 border rounded-md ${user ? 'bg-slate-100' : ''}">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium">Nova Senha*</label>
-                            <input type="password" name="password" required class="w-full mt-1 px-3 py-2 border rounded-md">
-                        </div>
+                        <div><label class="block text-sm font-medium">Usuário</label><input type="text" name="username" required ${user ? 'readonly' : ''} value="${user?.username || ''}" class="w-full mt-1 px-3 py-2 border rounded-md ${user ? 'bg-slate-100' : ''}"></div>
+                        <div><label class="block text-sm font-medium">Nova Senha*</label><input type="password" name="password" required class="w-full mt-1 px-3 py-2 border rounded-md"></div>
                          ${!user ? `<div><label class="block text-sm font-medium">Função</label><select name="role" class="w-full mt-1 px-3 py-2 border rounded-md"><option value="seller">Vendedor</option><option value="admin">Admin</option></select></div>` : ''}
                     </div>
-                    <div class="mt-6 flex justify-end space-x-3">
-                        <button type="button" id="btn-cancel-modal" class="px-5 py-3 bg-slate-200 rounded-lg hover:bg-slate-300">Cancelar</button>
-                        <button type="submit" class="px-5 py-3 bg-pink-400 text-white rounded-lg hover:bg-pink-500">Salvar</button>
-                    </div>
+                    <div class="mt-6 flex justify-end space-x-3"><button type="button" id="btn-cancel-modal" class="px-5 py-3 bg-slate-200 rounded-lg">Cancelar</button><button type="submit" class="px-5 py-3 bg-pink-400 text-white rounded-lg">Salvar</button></div>
                 </form>
             `);
         }
@@ -884,16 +503,13 @@
             const formData = new FormData(e.target);
             const id = formData.get('id');
             const clientData = { name: formData.get('name'), cpf: formData.get('cpf'), phone: formData.get('phone'), address: formData.get('address') };
-            if (id) {
-                await updateDoc(doc(db, dbPaths.clients, id), clientData);
-            } else {
-                await addDoc(collection(db, dbPaths.clients), { ...clientData, debt: 0, createdAt: new Date() });
-            }
+            if (id) await updateDoc(doc(db, dbPaths.clients, id), clientData);
+            else await addDoc(collection(db, dbPaths.clients), { ...clientData, debt: 0, createdAt: new Date() });
             closeModal();
         }
 
         async function handleDeleteClient(id) {
-            if (confirm('Tem certeza que deseja excluir este cliente? Esta ação não pode ser desfeita.')) {
+            if (confirm('Tem certeza que deseja excluir este cliente?')) {
                 await deleteDoc(doc(db, dbPaths.clients, id));
             }
         }
@@ -908,7 +524,7 @@
             const product = state.products.find(p => p.id === productId);
             if (!product) return;
             const newQuantity = action === 'add' ? product.quantity + amount : product.quantity - amount;
-            if (newQuantity < 0) { alert("Não é possível deixar o estoque negativo."); return; }
+            if (newQuantity < 0) { alert("Estoque não pode ser negativo."); return; }
             await updateDoc(doc(db, dbPaths.products, productId), { quantity: newQuantity });
         }
         
@@ -928,17 +544,9 @@
             e.preventDefault();
             const formData = new FormData(e.target);
             const id = formData.get('id');
-            const userData = {
-                username: formData.get('username'),
-                password: formData.get('password'),
-                role: formData.get('role') || 'seller'
-            };
-
-            if (id) {
-                await updateDoc(doc(db, dbPaths.users, id), { password: userData.password });
-            } else {
-                await addDoc(collection(db, dbPaths.users), userData);
-            }
+            const userData = { username: formData.get('username'), password: formData.get('password'), role: formData.get('role') || 'seller' };
+            if (id) await updateDoc(doc(db, dbPaths.users, id), { password: userData.password });
+            else await addDoc(collection(db, dbPaths.users), userData);
             closeModal();
         }
 
@@ -950,7 +558,7 @@
 
         function checkDiscount(discountPercent) {
             if (discountPercent > 10) {
-                const pass = prompt('Desconto acima de 10%. Por favor, insira a senha de administrador para autorizar:');
+                const pass = prompt('Desconto > 10%. Insira a senha de administrador:');
                 return pass === ADMIN_PASSWORD_STATIC;
             }
             return true;
@@ -960,47 +568,27 @@
             e.preventDefault();
             const errorEl = document.getElementById('transaction-error');
             errorEl.classList.add('hidden');
-            
             const formData = new FormData(e.target);
             const clientId = formData.get('clientId');
             const paymentMethod = formData.get('paymentMethod');
             const discountPercent = parseFloat(document.getElementById('discount-percent').value) || 0;
             const discountValue = parseFloat(document.getElementById('discount-value').value) || 0;
 
-            if (type === 'sale' && paymentMethod === 'A Prazo' && clientId === 'consumidor') {
-                errorEl.textContent = 'Para vendas "A Prazo", é obrigatório selecionar um cliente cadastrado.';
-                errorEl.classList.remove('hidden');
-                return;
-            }
+            if (type === 'sale' && paymentMethod === 'A Prazo' && clientId === 'consumidor') { errorEl.textContent = 'Vendas "A Prazo" exigem um cliente cadastrado.'; errorEl.classList.remove('hidden'); return; }
             
             const items = Array.from(document.querySelectorAll('.transaction-item')).map(el => {
                 const product = state.products.find(p => p.id === el.dataset.productId);
-                return {
-                    productId: el.dataset.productId,
-                    productName: el.dataset.productName,
-                    quantity: parseInt(el.querySelector('input[type="number"]').value),
-                    price: parseFloat(el.dataset.price),
-                    cost: product ? (product.cost || 0) : 0
-                }
+                return { productId: el.dataset.productId, productName: el.dataset.productName, quantity: parseInt(el.querySelector('input[type="number"]').value), price: parseFloat(el.dataset.price), cost: product ? (product.cost || 0) : 0 }
             });
 
-            if (items.length === 0) {
-                errorEl.textContent = 'Adicione pelo menos um item.';
-                errorEl.classList.remove('hidden');
-                return;
-            }
+            if (items.length === 0) { errorEl.textContent = 'Adicione pelo menos um item.'; errorEl.classList.remove('hidden'); return; }
             
             const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             const finalDiscountPercent = discountValue > 0 ? (discountValue / subtotal) * 100 : discountPercent;
             
-            if (!checkDiscount(finalDiscountPercent)) {
-                errorEl.textContent = 'Senha incorreta. Desconto não autorizado.';
-                errorEl.classList.remove('hidden');
-                return;
-            }
+            if (!checkDiscount(finalDiscountPercent)) { errorEl.textContent = 'Senha incorreta. Desconto não autorizado.'; errorEl.classList.remove('hidden'); return; }
 
             const total = subtotal - (subtotal * (discountPercent / 100)) - discountValue;
-            
             const transactionData = { clientId, items, total, subtotal, discountPercent, discountValue, date: new Date(), sellerId: state.currentUser.id, sellerName: state.currentUser.username };
 
             if (type === 'sale') {
@@ -1020,16 +608,12 @@
                     }
                     await batch.commit();
                     closeModal();
-                } catch (err) {
-                    errorEl.textContent = 'Erro ao finalizar a venda.'; errorEl.classList.remove('hidden'); console.error(err);
-                }
-            } else { // Orçamento
+                } catch (err) { errorEl.textContent = 'Erro ao finalizar a venda.'; errorEl.classList.remove('hidden'); console.error(err); }
+            } else {
                 try {
                     await addDoc(collection(db, dbPaths.quotes), transactionData);
                     closeModal();
-                } catch (err) {
-                    errorEl.textContent = 'Erro ao salvar o orçamento.'; errorEl.classList.remove('hidden'); console.error(err);
-                }
+                } catch (err) { errorEl.textContent = 'Erro ao salvar o orçamento.'; errorEl.classList.remove('hidden'); console.error(err); }
             }
         }
 
@@ -1041,7 +625,6 @@
             document.getElementById('btn-new-sale')?.addEventListener('click', () => { state.quoteToConvert = null; openModal(getTransactionForm('sale'), 'max-w-2xl'); });
             document.getElementById('btn-new-quote')?.addEventListener('click', () => openModal(getTransactionForm('quote'), 'max-w-2xl'));
             document.getElementById('btn-goto-cobranca')?.addEventListener('click', () => navigateTo('cobranca'));
-            
             document.querySelectorAll('.btn-stock-update').forEach(btn => btn.addEventListener('click', () => handleStockUpdate(btn.dataset.productId, btn.dataset.action)));
             document.querySelectorAll('.btn-receive-payment').forEach(btn => btn.addEventListener('click', () => showReceivePaymentModal(btn.dataset.clientId, btn.dataset.clientName, btn.dataset.clientDebt)));
             document.querySelectorAll('.btn-edit-client').forEach(btn => btn.addEventListener('click', () => showEditClientModal(state.clients.find(c => c.id === btn.dataset.clientId))));
