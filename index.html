@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
         h1, h2, h3 { font-family: 'Playfair Display', serif; }
@@ -33,14 +34,27 @@
         button:disabled:hover {
             background-color: #cbd5e1;
         }
-        @media print {
-            body * { visibility: hidden; }
-            #print-area, #print-area * { visibility: visible; }
-            #print-area { position: absolute; left: 0; top: 0; width: 100%; }
-        }
         .details-row.hidden {
             display: none;
         }
+        /* Estilos para impressão que serão usados pelo html2pdf */
+        .printable-area {
+            width: 210mm;
+            padding: 15mm;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+            color: #000;
+        }
+        .printable-area h1 { font-size: 24pt; margin-bottom: 5mm; font-family: Times, serif; }
+        .printable-area h2 { font-size: 16pt; margin-bottom: 8mm; border-bottom: 1px solid #ccc; padding-bottom: 2mm; font-family: Times, serif;}
+        .printable-area table { width: 100%; border-collapse: collapse; font-size: 10pt; }
+        .printable-area th, .printable-area td { border: 1px solid #ccc; padding: 2mm; text-align: left; }
+        .printable-area th { background-color: #f2f2f2; }
+        .printable-area .text-right { text-align: right; }
+        .printable-area .font-bold { font-weight: bold; }
+        .printable-area .total-section { margin-top: 8mm; padding-top: 4mm; border-top: 2px solid #333; }
+        .printable-area .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10mm; margin-bottom: 10mm; }
+        .printable-area .footer { margin-top: 20mm; text-align: center; font-size: 9pt; color: #777; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
@@ -106,6 +120,8 @@
         <div id="modal-content" class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 m-4">
         </div>
     </div>
+
+    <div id="pdf-generator" class="hidden"></div>
 
 
     <script type="module">
@@ -192,9 +208,9 @@
         function setupListeners() {
             if (!state.currentUser) return;
             onSnapshot(query(collection(db, dbPaths.clients)), s => { state.clients = s.docs.map((d, i) => ({ id: d.id, code: i + 1, ...d.data() })); if (['clientes', 'cobranca', 'financeiro', 'clientProfile'].includes(state.currentView)) render(); });
-            onSnapshot(query(collection(db, dbPaths.products)), s => { state.products = s.docs.map(d => ({ id: d.id, ...d.data() })); if (['produtos', 'estoque', 'compras'].includes(state.currentView)) render(); });
+            onSnapshot(query(collection(db, dbPaths.products)), s => { state.products = s.docs.map(d => ({ id: d.id, ...d.data() })); if (['produtos', 'estoque', 'compras', 'orcamento'].includes(state.currentView)) render(); });
             onSnapshot(query(collection(db, dbPaths.sales)), s => { state.sales = s.docs.map(d => ({ id: d.id, ...d.data() })); if (['dashboard', 'estoque', 'vendas', 'financeiro', 'clientes', 'clientProfile'].includes(state.currentView)) render(); });
-            onSnapshot(query(collection(db, dbPaths.quotes)), s => { state.quotes = s.docs.map(d => ({ id: d.id, ...d.data() })); if (state.currentView === 'orcamento') render(); });
+            onSnapshot(query(collection(db, dbPaths.quotes)), s => { state.quotes = s.docs.map(d => ({ id: d.id, ...d.data() })); if (['orcamento'].includes(state.currentView)) render(); });
             onSnapshot(query(collection(db, dbPaths.users)), s => { state.users = s.docs.map(d => ({ id: d.id, ...d.data() })); if (state.currentView === 'opcoes') render(); });
             onSnapshot(query(collection(db, dbPaths.expenses)), s => { state.expenses = s.docs.map(d => ({ id: d.id, ...d.data() })); if (['contas_a_pagar', 'financeiro'].includes(state.currentView)) render(); });
             onSnapshot(query(collection(db, dbPaths.expenseCategories)), s => { state.expenseCategories = s.docs.map(d => ({ id: d.id, ...d.data() })); if (['contas_a_pagar', 'financeiro'].includes(state.currentView)) render(); });
@@ -381,7 +397,7 @@
             const totalCostOfGoods = state.sales.flatMap(sale => sale.items).reduce((sum, item) => sum + ((item.cost || 0) * item.quantity), 0);
             const totalExpenses = paidExpenses.reduce((sum, expense) => sum + expense.amount, 0);
             const netProfit = totalRevenue - totalCostOfGoods - totalExpenses;
-            const accountsReceivableTotal = state.receivables.filter(r => r.status === 'Pendente').reduce((sum, r) => sum + r.amount, 0);
+            const accountsReceivableTotal = state.receivables.filter(r => r.status === 'Pendente').reduce((sum, r) => sum + (r.remainingAmount || r.amount), 0);
             
             const salesBySeller = state.sales.reduce((acc, sale) => {
                 const sellerName = sale.sellerName || 'N/A';
@@ -471,14 +487,15 @@
             `).join('');
 
             const receivablesRows = clientReceivables.map(r => {
-                const isOverdue = r.status === 'Pendente' && r.dueDate.toDate() < new Date();
+                const { total, interest } = calculateTotalDue(r);
+                const isOverdue = interest > 0;
                 const statusClass = r.status === 'Pago' ? 'bg-green-100 text-green-800' : (isOverdue ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800');
                 return `
                     <tr class="border-b">
                         <td class="p-3 ${isOverdue ? 'font-bold' : ''}">${r.dueDate.toDate().toLocaleDateString('pt-BR')}</td>
-                        <td class="p-3 text-right">R$ ${r.amount.toFixed(2).replace('.',',')}</td>
+                        <td class="p-3 text-right">R$ ${total.toFixed(2).replace('.',',')} ${isOverdue ? `<br><span class='text-xs text-red-600'>(+ R$ ${interest.toFixed(2)} juros)</span>` : ''}</td>
                         <td class="p-3 text-center">${r.installmentNumber}/${r.totalInstallments}</td>
-                        <td class="p-3 text-center"><span class="px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">${isOverdue ? 'Vencido' : r.status}</span></td>
+                        <td class="p-3 text-center"><span class="px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">${isOverdue && r.status === 'Pendente' ? 'Vencido' : r.status}</span></td>
                         <td class="p-3 text-center">${r.paymentDate ? r.paymentDate.toDate().toLocaleDateString('pt-BR') : '-'}</td>
                     </tr>
                 `
@@ -500,7 +517,7 @@
                         <h3 class="text-xl font-bold mb-4">Situação Financeira (A Prazo)</h3>
                         <div class="overflow-x-auto max-h-96">
                             <table class="w-full text-sm">
-                                <thead><tr><th class="p-3 text-left">Vencimento</th><th class="p-3 text-right">Valor</th><th class="p-3 text-center">Parcela</th><th class="p-3 text-center">Status</th><th class="p-3 text-center">Data Pag.</th></tr></thead>
+                                <thead><tr><th class="p-3 text-left">Vencimento</th><th class="p-3 text-right">Valor Atualizado</th><th class="p-3 text-center">Parcela</th><th class="p-3 text-center">Status</th><th class="p-3 text-center">Data Pag.</th></tr></thead>
                                 <tbody>${receivablesRows || `<tr><td colspan="5" class="p-4 text-center">Nenhuma compra a prazo.</td></tr>`}</tbody>
                             </table>
                         </div>
@@ -550,6 +567,7 @@
                     <td class="p-4 text-center"><span class="px-2 py-1 text-xs font-semibold text-yellow-800 bg-yellow-200 rounded-full">${p.status}</span></td>
                     <td class="p-4 flex justify-center items-center gap-1">
                         <button data-order-id="${p.id}" class="btn-receive-order bg-green-500 text-white px-3 py-1 rounded-lg text-xs font-semibold hover:bg-green-600">Receber</button>
+                        <button data-order-id="${p.id}" class="btn-print-order p-2 text-gray-500" title="Imprimir Pedido"><i data-lucide="printer" class="w-4 h-4"></i></button>
                         <button data-order-id="${p.id}" class="btn-edit-order p-2 text-blue-500"><i data-lucide="edit" class="w-4 h-4"></i></button>
                         <button data-order-id="${p.id}" class="btn-delete-order p-2 text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                     </td>
@@ -563,7 +581,9 @@
                     <td class="p-4 text-center">${p.items.reduce((a,i)=>a+i.quantity,0)}</td>
                     <td class="p-4 text-right font-semibold">R$ ${p.totalCost.toFixed(2).replace('.',',')}</td>
                     <td class="p-4 text-center"><span class="px-2 py-1 text-xs font-semibold text-green-800 bg-green-200 rounded-full">${p.status}</span></td>
-                    <td class="p-4 text-center">-</td>
+                    <td class="p-4 flex justify-center items-center gap-1">
+                        <button data-order-id="${p.id}" class="btn-print-order p-2 text-gray-500" title="Imprimir Pedido"><i data-lucide="printer" class="w-4 h-4"></i></button>
+                    </td>
                 </tr>
             `).join('');
 
@@ -653,6 +673,7 @@
                     <td class="p-4 text-right font-semibold text-blue-600">R$ ${q.total.toFixed(2).replace('.',',')}</td>
                     <td class="p-4 flex gap-2 justify-center">
                         <button data-quote-id="${q.id}" class="btn-convert-quote bg-green-500 text-white px-3 py-1 rounded-lg text-xs font-semibold hover:bg-green-600">Vender</button>
+                        <button class="btn-print-quote p-2 text-gray-500" data-quote-id="${q.id}" title="Imprimir Orçamento"><i data-lucide="printer" class="w-4 h-4"></i></button>
                         <button class="btn-edit-quote p-2 text-blue-500" data-quote-id="${q.id}"><i data-lucide="edit" class="w-4 h-4"></i></button>
                         <button class="btn-delete-quote p-2 text-red-500" data-quote-id="${q.id}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                     </td>
@@ -685,8 +706,9 @@
                 }
                 if (acc[clientId]) {
                     acc[clientId].receivables.push(receivable);
-                    acc[clientId].totalDebt += receivable.amount;
-                    if (receivable.dueDate.toDate() < today) {
+                    const { total } = calculateTotalDue(receivable);
+                    acc[clientId].totalDebt += total;
+                    if (!acc[clientId].isOverdue && receivable.dueDate.toDate() < today) {
                         acc[clientId].isOverdue = true;
                     }
                 }
@@ -702,18 +724,20 @@
             const rows = clientList.map(data => {
                 const { client, receivables, totalDebt, isOverdue } = data;
                 
-                const detailsRows = receivables.sort((a,b) => a.dueDate.toDate() - b.dueDate.toDate()).map(r => `
+                const detailsRows = receivables.sort((a,b) => a.dueDate.toDate() - b.dueDate.toDate()).map(r => {
+                    const { total, interest, daysOverdue } = calculateTotalDue(r);
+                    return `
                     <tr class="bg-slate-50 hover:bg-slate-100">
-                        <td class="p-2 pl-12 font-semibold ${r.dueDate.toDate() < today ? 'text-red-500' : ''}">${r.dueDate.toDate().toLocaleDateString('pt-BR')}</td>
+                        <td class="p-2 pl-12 font-semibold ${interest > 0 ? 'text-red-500' : ''}">${r.dueDate.toDate().toLocaleDateString('pt-BR')} ${interest > 0 ? `(${daysOverdue} dias)` : ''}</td>
                         <td class="p-2 text-center">${r.installmentNumber}/${r.totalInstallments}</td>
-                        <td class="p-2 text-right">R$ ${r.amount.toFixed(2).replace('.', ',')}</td>
+                        <td class="p-2 text-right">R$ ${total.toFixed(2).replace('.', ',')} ${interest > 0 ? `<span class='text-xs text-red-600'>(+${interest.toFixed(2)})</span>` : ''}</td>
                         <td class="p-2 text-center flex items-center justify-center gap-2">
-                            <button data-receivable-id="${r.id}" data-client-id="${r.clientId}" class="btn-settle-receivable bg-green-500 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-green-600">Receber</button>
+                            <button data-receivable-id="${r.id}" class="btn-receive-payment bg-green-500 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-green-600">Receber</button>
                             <button data-receivable-id="${r.id}" class="btn-edit-receivable p-1 text-blue-500 hover:bg-blue-100 rounded-full" title="Editar Parcela"><i data-lucide="pencil" class="w-4 h-4"></i></button>
                             <button data-receivable-id="${r.id}" class="btn-delete-receivable p-1 text-red-500 hover:bg-red-100 rounded-full" title="Excluir Parcela"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                         </td>
                     </tr>
-                `).join('');
+                `}).join('');
 
                 return `
                     <tbody class="client-group">
@@ -723,6 +747,7 @@
                             <td class="p-4 text-right font-bold">R$ ${totalDebt.toFixed(2).replace('.', ',')}</td>
                             <td class="p-4 text-center flex items-center justify-center gap-2">
                                  <button class="btn-toggle-details p-2 text-slate-500 hover:bg-slate-200 rounded-full" data-client-id="${client.id}" title="Ver Parcelas"><i data-lucide="chevron-down" class="w-5 h-5"></i></button>
+                                 <button class="btn-print-debts p-2 text-gray-500 hover:bg-gray-100 rounded-full" data-client-id="${client.id}" title="Imprimir Pendências"><i data-lucide="printer" class="w-5 h-5"></i></button>
                                  <button class="btn-view-profile p-2 text-green-600 hover:bg-green-100 rounded-full" data-client-id="${client.id}" title="Ver Perfil"><i data-lucide="eye" class="w-5 h-5"></i></button>
                                  <button class="btn-edit-client p-2 text-blue-500 hover:bg-blue-100 rounded-full" data-client-id="${client.id}" title="Editar Cliente"><i data-lucide="edit" class="w-5 h-5"></i></button>
                                  <button class="btn-delete-client p-2 text-red-500 hover:bg-red-100 rounded-full" data-client-id="${client.id}" title="Excluir Cliente"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
@@ -731,7 +756,8 @@
                         <tr class="details-row hidden" data-details-for="${client.id}">
                             <td colspan="4" class="p-0 bg-slate-50">
                                 <table class="w-full text-sm">
-                                    ${detailsRows}
+                                    <thead><tr class="bg-slate-200"><th class="p-2 pl-12 text-left">Vencimento</th><th class="p-2 text-center">Parcela</th><th class="p-2 text-right">Valor Atualizado</th><th class="p-2 text-center">Ação</th></tr></thead>
+                                    <tbody>${detailsRows}</tbody>
                                 </table>
                             </td>
                         </tr>
@@ -748,7 +774,7 @@
                                 <tr>
                                     <th class="p-4 text-left">Cliente</th>
                                     <th class="p-4 text-center">Parcelas Pendentes</th>
-                                    <th class="p-4 text-right">Dívida Total</th>
+                                    <th class="p-4 text-right">Dívida Total (c/ juros)</th>
                                     <th class="p-4 text-center">Ações</th>
                                 </tr>
                             </thead>
@@ -978,6 +1004,34 @@
                 </form>
             `;
         }
+
+        // NOVO: MODAL PARA RECEBIMENTO PARCIAL
+        function getReceivePaymentForm(receivable) {
+            const { total, interest, principal } = calculateTotalDue(receivable);
+            return `
+                <form id="form-receive-payment">
+                    <h3 class="text-2xl font-bold mb-4">Receber Pagamento</h3>
+                    <input type="hidden" name="id" value="${receivable.id}">
+                    <div class="space-y-4">
+                        <div><label class="block text-sm">Cliente:</label> <span class="font-semibold">${receivable.clientName}</span></div>
+                        <div><label class="block text-sm">Parcela:</label> <span class="font-semibold">${receivable.installmentNumber}/${receivable.totalInstallments}</span></div>
+                        <div class="p-4 border rounded-lg bg-slate-50">
+                            <div class="flex justify-between"><span class="text-slate-600">Valor Original:</span> <span>R$ ${principal.toFixed(2)}</span></div>
+                            ${interest > 0 ? `<div class="flex justify-between text-red-600"><span >Juros por Atraso:</span> <span>R$ ${interest.toFixed(2)}</span></div>` : ''}
+                            <div class="flex justify-between font-bold text-lg mt-2 pt-2 border-t"><span >Total Devido Hoje:</span> <span>R$ ${total.toFixed(2)}</span></div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium">Valor a Receber (R$)*</label>
+                            <input type="number" name="paymentAmount" required min="0.01" max="${total.toFixed(2)}" step="0.01" value="${total.toFixed(2)}" class="w-full mt-1 px-3 py-2 border rounded-md text-lg">
+                        </div>
+                    </div>
+                    <div class="mt-6 flex justify-end space-x-3">
+                        <button type="button" id="btn-cancel-modal" class="px-5 py-3 bg-slate-200 rounded-lg">Cancelar</button>
+                        <button type="submit" class="px-5 py-3 bg-green-500 text-white rounded-lg">Confirmar Recebimento</button>
+                    </div>
+                </form>
+            `;
+        }
         
         function showUserForm(user = null) {
             openModal(`
@@ -1117,7 +1171,6 @@
             closeModal();
         }
 
-        // ALTERADO - ADICIONADO PROTEÇÃO PARA CONTAS ADMIN
         async function handleDeleteUser(id) {
             const userToDelete = state.users.find(u => u.id === id);
             if (userToDelete && userToDelete.role === 'admin') {
@@ -1213,11 +1266,11 @@
                         const clientName = state.clients.find(c => c.id === clientId)?.name || '';
                         for (let i = 1; i <= installmentsCount; i++) {
                             const dueDate = new Date();
-                            dueDate.setDate(dueDate.getDate() + 30 * i); 
-                            dueDate.setHours(12,0,0,0);
+                            dueDate.setMonth(dueDate.getMonth() + i);
                             const receivableData = {
                                 clientId, clientName, saleId,
                                 amount: installmentAmount,
+                                remainingAmount: installmentAmount, // NOVO
                                 installmentNumber: i,
                                 totalInstallments: installmentsCount,
                                 dueDate: dueDate,
@@ -1427,33 +1480,39 @@
             }
         }
         
-        async function handleSettleReceivable(receivableId, clientId) {
-            if (confirm("Confirmar o recebimento desta parcela?")) {
-                const receivable = state.receivables.find(r => r.id === receivableId);
-                if (!receivable) return;
+        async function handleReceivePayment(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const receivableId = formData.get('id');
+            const paymentAmount = parseFloat(formData.get('paymentAmount'));
+            
+            const receivable = state.receivables.find(r => r.id === receivableId);
+            if (!receivable) return;
 
-                const today = new Date();
-                today.setHours(0,0,0,0);
-                const isLate = receivable.dueDate.toDate() < today;
-
-                await updateDoc(doc(db, dbPaths.receivables, receivableId), {
-                    status: 'Pago',
-                    paymentDate: new Date()
-                });
-
-                if (isLate && clientId) {
-                    const clientRef = doc(db, dbPaths.clients, clientId);
-                    try {
-                         const clientDoc = await getDoc(clientRef);
-                        if (clientDoc.exists()) {
-                            const currentLateCount = clientDoc.data().latePaymentsCount || 0;
-                            await updateDoc(clientRef, { latePaymentsCount: currentLateCount + 1 });
-                        }
-                    } catch (error) {
-                        console.error("Erro ao atualizar contador de atrasos do cliente:", error)
+            const newRemainingAmount = (receivable.remainingAmount || receivable.amount) - paymentAmount;
+            
+            const updateData = {};
+            if (newRemainingAmount <= 0.01) { // Lidar com pequenas imprecisões de float
+                updateData.status = 'Pago';
+                updateData.remainingAmount = 0;
+                updateData.paymentDate = new Date();
+                
+                // Lógica de contar atraso
+                const today = new Date(); today.setHours(0,0,0,0);
+                if (receivable.dueDate.toDate() < today) {
+                    const clientRef = doc(db, dbPaths.clients, receivable.clientId);
+                    const clientDoc = await getDoc(clientRef);
+                    if (clientDoc.exists()) {
+                        const currentLateCount = clientDoc.data().latePaymentsCount || 0;
+                        await updateDoc(clientRef, { latePaymentsCount: currentLateCount + 1 });
                     }
                 }
+            } else {
+                updateData.remainingAmount = newRemainingAmount;
             }
+
+            await updateDoc(doc(db, dbPaths.receivables, receivableId), updateData);
+            closeModal();
         }
         
         async function handleEditReceivable(e) {
@@ -1462,8 +1521,15 @@
             const id = formData.get('id');
             if (!id) return;
 
+            const receivable = state.receivables.find(r => r.id === id);
+            if (!receivable) return;
+            
+            const newAmount = parseFloat(formData.get('amount'));
+
             const updatedData = {
-                amount: parseFloat(formData.get('amount')),
+                amount: newAmount,
+                // Ao editar o valor, o valor restante também deve ser ajustado
+                remainingAmount: newAmount,
                 dueDate: new Date(formData.get('dueDate') + 'T12:00:00'),
             };
 
@@ -1515,6 +1581,29 @@
             }
         }
 
+        // --- FUNÇÕES UTILITÁRIAS ---
+
+        // NOVO: CALCULA JUROS E TOTAL
+        function calculateTotalDue(receivable) {
+            const principal = receivable.remainingAmount ?? receivable.amount;
+            if (receivable.status !== 'Pendente') {
+                return { principal, interest: 0, total: principal, daysOverdue: 0 };
+            }
+
+            const today = new Date(); today.setHours(0,0,0,0);
+            const dueDate = receivable.dueDate.toDate(); dueDate.setHours(0,0,0,0);
+            
+            let interest = 0;
+            let daysOverdue = 0;
+
+            if (dueDate < today) {
+                daysOverdue = Math.floor((today - dueDate) / (1000 * 3600 * 24));
+                interest = principal * 0.01 * daysOverdue; // 1% de juros ao dia
+            }
+            
+            return { principal, interest, total: principal + interest, daysOverdue };
+        }
+
         // --- EVENT LISTENERS DINÂMICOS ---
         
         function addEventListeners() {
@@ -1533,12 +1622,14 @@
 
             document.querySelectorAll('.btn-stock-update').forEach(btn => btn.addEventListener('click', () => handleStockUpdate(btn.dataset.productId, btn.dataset.action)));
             document.querySelectorAll('.btn-view-profile').forEach(btn => btn.addEventListener('click', () => navigateTo('clientProfile', btn.dataset.clientId)));
-            document.querySelectorAll('.btn-settle-receivable').forEach(btn => btn.addEventListener('click', () => handleSettleReceivable(btn.dataset.receivableId, btn.dataset.clientId)));
+            document.querySelectorAll('.btn-receive-payment').forEach(btn => btn.addEventListener('click', () => {
+                const receivable = state.receivables.find(r => r.id === btn.dataset.receivableId);
+                if (receivable) openModal(getReceivePaymentForm(receivable), 'max-w-lg');
+            }));
             
             document.querySelectorAll('.btn-toggle-details').forEach(btn => {
                 btn.addEventListener('click', () => {
-                    const clientId = btn.dataset.clientId;
-                    const detailsRow = document.querySelector(`.details-row[data-details-for="${clientId}"]`);
+                    const detailsRow = btn.closest('tbody').querySelector('.details-row');
                     detailsRow?.classList.toggle('hidden');
                     const icon = btn.querySelector('i');
                     icon.setAttribute('data-lucide', detailsRow?.classList.contains('hidden') ? 'chevron-down' : 'chevron-up');
@@ -1583,6 +1674,11 @@
             document.querySelectorAll('.btn-edit-expense').forEach(btn => btn.addEventListener('click', () => showEditExpenseModal(btn.dataset.expenseId)));
             document.querySelectorAll('.btn-delete-expense').forEach(btn => btn.addEventListener('click', () => handleDeleteExpense(btn.dataset.expenseId)));
             document.querySelectorAll('.btn-settle-expense').forEach(btn => btn.addEventListener('click', () => handleSettleExpense(btn.dataset.expenseId)));
+
+            // Listeners para os botões de imprimir
+            document.querySelectorAll('.btn-print-quote').forEach(btn => btn.addEventListener('click', () => printQuote(btn.dataset.quoteId)));
+            document.querySelectorAll('.btn-print-order').forEach(btn => btn.addEventListener('click', () => printOrder(btn.dataset.orderId)));
+            document.querySelectorAll('.btn-print-debts').forEach(btn => btn.addEventListener('click', () => printClientDebts(btn.dataset.clientId)));
         }
         
         function showEditTransactionModal(id, type) {
@@ -1648,6 +1744,7 @@
             document.getElementById('form-expense')?.addEventListener('submit', handleExpenseForm);
             document.getElementById('form-category')?.addEventListener('submit', handleCategoryForm);
             document.getElementById('form-edit-receivable')?.addEventListener('submit', handleEditReceivable);
+            document.getElementById('form-receive-payment')?.addEventListener('submit', handleReceivePayment);
             
             document.querySelectorAll('.btn-delete-category').forEach(btn => btn.addEventListener('click', () => handleDeleteCategory(btn.dataset.id)));
             
@@ -1709,6 +1806,176 @@
             document.getElementById('purchase-total').textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
         }
 
+        // --- FUNÇÕES DE IMPRESSÃO (PDF) ---
+
+        function generatePdf(element, filename) {
+            const options = {
+                margin: 1,
+                filename: filename,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().from(element).set(options).save();
+        }
+
+        function printQuote(quoteId) {
+            const quote = state.quotes.find(q => q.id === quoteId);
+            const client = state.clients.find(c => c.id === quote.clientId);
+            if (!quote) return;
+
+            const itemsRows = quote.items.map(item => `
+                <tr>
+                    <td>${item.productName}</td>
+                    <td class="text-right">${item.quantity}</td>
+                    <td class="text-right">R$ ${item.price.toFixed(2)}</td>
+                    <td class="text-right">R$ ${(item.quantity * item.price).toFixed(2)}</td>
+                </tr>
+            `).join('');
+
+            const html = `
+                <div class="printable-area">
+                    <h1>Maria Beleza Mulher</h1>
+                    <h2>Orçamento</h2>
+                    <div class="info-grid">
+                        <div>
+                            <p><strong>Cliente:</strong> ${client ? client.name : 'Consumidor Final'}</p>
+                            <p><strong>Telefone:</strong> ${client ? (client.phone || 'N/A') : 'N/A'}</p>
+                        </div>
+                        <div>
+                            <p><strong>Data:</strong> ${quote.date.toDate().toLocaleDateString('pt-BR')}</p>
+                            <p><strong>Orçamento Nº:</strong> ${quote.id.slice(0, 8)}</p>
+                        </div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Produto</th>
+                                <th class="text-right">Qtd.</th>
+                                <th class="text-right">Preço Unit.</th>
+                                <th class="text-right">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>${itemsRows}</tbody>
+                    </table>
+                    <div class="total-section">
+                        <p class="text-right"><strong>Subtotal:</strong> R$ ${quote.subtotal.toFixed(2)}</p>
+                        ${quote.discountValue > 0 ? `<p class="text-right"><strong>Desconto:</strong> R$ ${quote.discountValue.toFixed(2)}</p>` : ''}
+                        <p class="text-right font-bold" style="font-size: 14pt;">TOTAL: R$ ${quote.total.toFixed(2)}</p>
+                    </div>
+                    <div class="footer">Este orçamento é válido por 15 dias.</div>
+                </div>
+            `;
+            const container = document.getElementById('pdf-generator');
+            container.innerHTML = html;
+            generatePdf(container.firstElementChild, `Orcamento-${client ? client.name : 'Consumidor'}.pdf`);
+        }
+
+        function printOrder(orderId) {
+             const order = state.purchaseOrders.find(o => o.id === orderId);
+             if (!order) return;
+             
+             const itemsRows = order.items.map(item => `
+                <tr>
+                    <td>${item.productName}</td>
+                    <td class="text-right">${item.quantity}</td>
+                    <td class="text-right">R$ ${item.cost.toFixed(2)}</td>
+                    <td class="text-right">R$ ${(item.quantity * item.cost).toFixed(2)}</td>
+                </tr>
+            `).join('');
+
+             const html = `
+                <div class="printable-area">
+                    <h1>Maria Beleza Mulher</h1>
+                    <h2>Pedido de Compra</h2>
+                    <div class="info-grid">
+                        <div><p><strong>Fornecedor:</strong> ${order.supplier}</p></div>
+                        <div>
+                            <p><strong>Data:</strong> ${order.date.toDate().toLocaleDateString('pt-BR')}</p>
+                            <p><strong>Pedido Nº:</strong> ${order.id.slice(0, 8)}</p>
+                        </div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Produto</th>
+                                <th class="text-right">Qtd.</th>
+                                <th class="text-right">Custo Unit.</th>
+                                <th class="text-right">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>${itemsRows}</tbody>
+                    </table>
+                    <div class="total-section">
+                        <p class="text-right font-bold" style="font-size: 14pt;">CUSTO TOTAL: R$ ${order.totalCost.toFixed(2)}</p>
+                    </div>
+                </div>
+             `;
+            const container = document.getElementById('pdf-generator');
+            container.innerHTML = html;
+            generatePdf(container.firstElementChild, `Pedido-${order.supplier}.pdf`);
+        }
+
+        function printClientDebts(clientId) {
+            const client = state.clients.find(c => c.id === clientId);
+            if (!client) return;
+
+            const pendingReceivables = state.receivables.filter(r => r.clientId === clientId && r.status === 'Pendente');
+            if (pendingReceivables.length === 0) {
+                alert('Este cliente não possui pendências.');
+                return;
+            }
+
+            let totalGeral = 0;
+            const itemsRows = pendingReceivables.map(r => {
+                const { total, interest, daysOverdue } = calculateTotalDue(r);
+                totalGeral += total;
+                return `
+                    <tr>
+                        <td>Parcela ${r.installmentNumber}/${r.totalInstallments} (Venda ${r.saleId.slice(0,6)}...)</td>
+                        <td>${r.dueDate.toDate().toLocaleDateString('pt-BR')}</td>
+                        <td class="text-right">${daysOverdue > 0 ? `${daysOverdue} dias` : '-'}</td>
+                        <td class="text-right">R$ ${interest.toFixed(2)}</td>
+                        <td class="text-right font-bold">R$ ${total.toFixed(2)}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            const html = `
+                <div class="printable-area">
+                    <h1>Maria Beleza Mulher</h1>
+                    <h2>Extrato de Pendências</h2>
+                    <div class="info-grid">
+                        <div>
+                            <p><strong>Cliente:</strong> ${client.name}</p>
+                            <p><strong>CPF:</strong> ${client.cpf || 'N/A'}</p>
+                        </div>
+                        <div>
+                            <p><strong>Data de Emissão:</strong> ${new Date().toLocaleDateString('pt-BR')}</p>
+                        </div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Descrição</th>
+                                <th>Vencimento</th>
+                                <th class="text-right">Dias Atraso</th>
+                                <th class="text-right">Juros (R$)</th>
+                                <th class="text-right">Valor a Pagar (R$)</th>
+                            </tr>
+                        </thead>
+                        <tbody>${itemsRows}</tbody>
+                    </table>
+                     <div class="total-section">
+                        <p class="text-right font-bold" style="font-size: 14pt;">TOTAL GERAL DEVIDO: R$ ${totalGeral.toFixed(2)}</p>
+                    </div>
+                </div>
+            `;
+
+            const container = document.getElementById('pdf-generator');
+            container.innerHTML = html;
+            generatePdf(container.firstElementChild, `Pendencias-${client.name}.pdf`);
+        }
     </script>
 </body>
 </html>
