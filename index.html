@@ -60,9 +60,14 @@
         <header class="bg-white shadow-md sticky top-0 z-30">
             <div class="container mx-auto flex justify-between items-center p-4">
                 <h1 class="text-xl sm:text-2xl font-bold brand-pink">Maria Beleza</h1>
-                <div class="text-right">
-                    <p class="text-xs text-slate-500">Usuário:</p>
-                    <p id="user-name-display" class="text-sm font-semibold text-slate-800"></p>
+                <div class="flex items-center gap-4">
+                    <div class="text-right">
+                        <p class="text-xs text-slate-500">Usuário:</p>
+                        <p id="user-name-display" class="text-sm font-semibold text-slate-800"></p>
+                    </div>
+                    <button id="btn-logout" class="p-2 text-slate-600 hover:text-red-500 transition-colors" title="Sair">
+                        <i data-lucide="log-out" class="w-5 h-5"></i>
+                    </button>
                 </div>
             </div>
             <nav id="main-nav" class="bg-slate-100 border-t border-b border-slate-200 overflow-x-auto whitespace-nowrap">
@@ -183,7 +188,7 @@
             });
         }
 
-        // --- LÓGICA DE LOGIN ---
+        // --- LÓGICA DE LOGIN E LOGOUT ---
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const username = document.getElementById('username').value;
@@ -214,6 +219,10 @@
                 navigateTo('dashboard');
             }
         });
+
+        function handleLogout() {
+            window.location.reload();
+        }
 
         async function updateUserSession() {
             if (!state.currentUser) return;
@@ -620,6 +629,7 @@
         // --- EVENT LISTENERS DINÂMICOS ---
         
         function addEventListeners() {
+            document.getElementById('btn-logout')?.addEventListener('click', handleLogout);
             document.getElementById('btn-new-client')?.addEventListener('click', showNewClientModal);
             document.getElementById('btn-new-product')?.addEventListener('click', showNewProductModal);
             document.getElementById('btn-new-sale')?.addEventListener('click', () => { state.quoteToConvert = null; openModal(getTransactionForm('sale'), 'max-w-2xl'); });
