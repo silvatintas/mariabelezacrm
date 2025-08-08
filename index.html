@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM - Maria Beleza Mulher</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3 { font-family: 'Playfair Display', serif; }
+        .brand-pink { color: #f472b6; } /* text-pink-400 */
+        .bg-brand-pink { background-color: #f472b6; }
+        .border-brand-pink { border-color: #f472b6; }
+        .ring-brand-pink { --tw-ring-color: #f472b6; }
+        .sidebar-icon {
+            stroke-width: 1.5;
+        }
+        .client-tab-link.active {
+            color: #f472b6; /* brand-pink */
+            border-color: #f472b6; /* brand-pink */
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <!-- Tela de Login -->
+    <div id="login-screen" class="flex items-center justify-center min-h-screen bg-gray-100">
+        <div class="w-full max-w-md p-8 space-y-6 bg-white rounded-2xl shadow-lg">
+            <div class="text-center">
+                <h1 class="text-4xl font-bold text-slate-800">Maria Beleza Mulher</h1>
+                <p class="mt-2 text-slate-500">"Refaça o pacto com sua beleza"</p>
+            </div>
+            <form id="login-form" class="space-y-6">
+                <div>
+                    <label for="username" class="text-sm font-medium text-slate-700">Login</label>
+                    <input id="username" type="text" required class="w-full px-4 py-2 mt-1 border border-slate-300 rounded-lg focus:ring-brand-pink focus:border-brand-pink">
+                </div>
+                <div>
+                    <label for="password" class="text-sm font-medium text-slate-700">Senha</label>
+                    <input id="password" type="password" required class="w-full px-4 py-2 mt-1 border border-slate-300 rounded-lg focus:ring-brand-pink focus:border-brand-pink">
+                </div>
+                <div id="login-error" class="text-red-500 text-sm text-center hidden">Usuário ou senha inválidos.</div>
+                <button type="submit" class="w-full px-4 py-3 font-semibold text-white bg-pink-400 rounded-lg hover:bg-pink-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-pink transition-colors duration-300">
+                    Entrar
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Aplicação Principal (CRM) -->
+    <div id="app" class="hidden">
+        <div class="flex h-screen bg-gray-100">
+            <!-- Sidebar -->
+            <aside class="w-64 flex-shrink-0 bg-white border-r border-slate-200 flex flex-col">
+                <div class="h-20 flex items-center justify-center border-b border-slate-200">
+                    <h1 class="text-2xl font-bold brand-pink">Maria Beleza</h1>
+                </div>
+                <nav class="flex-1 px-4 py-6 space-y-2">
+                    <a href="#" data-view="dashboard" class="nav-link flex items-center px-4 py-2 text-slate-700 rounded-lg hover:bg-pink-50 bg-pink-100 font-semibold">
+                        <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3 sidebar-icon"></i> Início
+                    </a>
+                    <a href="#" data-view="vendas" class="nav-link flex items-center px-4 py-2 text-slate-700 rounded-lg hover:bg-pink-50">
+                        <i data-lucide="shopping-cart" class="w-5 h-5 mr-3 sidebar-icon"></i> Vendas
+                    </a>
+                    <a href="#" data-view="financeiro" class="nav-link flex items-center px-4 py-2 text-slate-700 rounded-lg hover:bg-pink-50">
+                        <i data-lucide="piggy-bank" class="w-5 h-5 mr-3 sidebar-icon"></i> Financeiro
+                    </a>
+                    <a href="#" data-view="clientes" class="nav-link flex items-center px-4 py-2 text-slate-700 rounded-lg hover:bg-pink-50">
+                        <i data-lucide="users" class="w-5 h-5 mr-3 sidebar-icon"></i> Clientes
+                    </a>
+                    <a href="#" data-view="produtos" class="nav-link flex items-center px-4 py-2 text-slate-700 rounded-lg hover:bg-pink-50">
+                        <i data-lucide="package" class="w-5 h-5 mr-3 sidebar-icon"></i> Produtos
+                    </a>
+                    <a href="#" data-view="estoque" class="nav-link flex items-center px-4 py-2 text-slate-700 rounded-lg hover:bg-pink-50">
+                        <i data-lucide="archive" class="w-5 h-5 mr-3 sidebar-icon"></i> Estoque
+                    </a>
+                    <a href="#" data-view="cobranca" class="nav-link flex items-center px-4 py-2 text-slate-700 rounded-lg hover:bg-pink-50">
+                        <i data-lucide="dollar-sign" class="w-5 h-5 mr-3 sidebar-icon"></i> Cobrança
+                    </a>
+                </nav>
+                 <div class="p-4 border-t border-slate-200">
+                    <p class="text-xs text-slate-400">ID do Usuário/Sessão:</p>
+                    <p id="user-id-display" class="text-xs text-slate-500 break-all"></p>
+                </div>
+            </aside>
+
+            <!-- Conteúdo Principal -->
+            <main class="flex-1 p-6 lg:p-8 overflow-y-auto">
+                <div id="view-container">
+                    <!-- As views serão renderizadas aqui -->
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <!-- Modal Genérico -->
+    <div id="modal-container" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div id="modal-content" class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 m-4">
+            <!-- Conteúdo do modal será injetado aqui -->
+        </div>
+    </div>
+
+
+    <script type="module">
+        // Importações do Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-analytics.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+        import { getFirestore, doc, collection, addDoc, getDocs, onSnapshot, updateDoc, deleteDoc, query, where, writeBatch } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+        // --- CONFIGURAÇÃO E AUTENTICAÇÃO FIREBASE ---
+        // Your web app's Firebase configuration
+        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+        const firebaseConfig = {
+            apiKey: "AIzaSyDPisgGzruxqnXzf9hPlb05uCN3hMozt2s",
+            authDomain: "crm-silva-tintas.firebaseapp.com",
+            projectId: "crm-silva-tintas",
+            storageBucket: "crm-silva-tintas.firebasestorage.app",
+            messagingSenderId: "37152653096",
+            appId: "1:37152653096:web:37e27f33544fdc36abda1d",
+            measurementId: "G-Y4EXZKNN2F"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        
+        // This artifactAppId is for the artifact storage path, separate from Firebase's appId
+        const artifactAppId = typeof __app_id !== 'undefined' ? __app_id : 'crm-maria-beleza';
+
+        let userId = null;
+        let dbPaths = {};
+        let salesChart = null;
+
+        // Estado da aplicação
+        const state = {
+            clients: [],
+            products: [],
+            sales: [],
+            currentView: 'dashboard'
+        };
+
+        // --- INICIALIZAÇÃO DA APLICAÇÃO ---
+        
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+                document.getElementById('user-id-display').textContent = userId;
+                setupDbPaths(userId);
+                setupListeners();
+            } else {
+                try {
+                    // Note: signInAnonymously is used here as a fallback.
+                    // For a real-world app, you'd likely use a different auth method.
+                    await signInAnonymously(auth);
+                } catch (error) {
+                    console.error("Erro na autenticação anônima:", error);
+                }
+            }
+        });
+
+        function setupDbPaths(uid) {
+            // Path for Firestore data, using the artifact's ID
+            const basePath = `artifacts/${artifactAppId}/public/data`;
+            dbPaths = {
+                clients: `${basePath}/clients`,
+                products: `${basePath}/products`,
+                sales: `${basePath}/sales`,
+            };
+        }
+        
+        function setupListeners() {
+            // Listener para Clientes
+            const clientsQuery = query(collection(db, dbPaths.clients));
+            onSnapshot(clientsQuery, (snapshot) => {
+                state.clients = snapshot.docs.map((doc, index) => ({ id: doc.id, code: index + 1, ...doc.data() }));
+                if (['clientes', 'cobranca', 'financeiro'].includes(state.currentView)) render();
+            }, error => console.error("Erro no listener de clientes:", error));
+
+            // Listener para Produtos
+            const productsQuery = query(collection(db, dbPaths.products));
+            onSnapshot(productsQuery, (snapshot) => {
+                state.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                if (['produtos', 'estoque'].includes(state.currentView)) render();
+            }, error => console.error("Erro no listener de produtos:", error));
+            
+            // Listener para Vendas
+            const salesQuery = query(collection(db, dbPaths.sales));
+            onSnapshot(salesQuery, (snapshot) => {
+                state.sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                if (['dashboard', 'estoque', 'vendas', 'financeiro', 'clientes'].includes(state.currentView)) {
+                    render();
+                }
+            }, error => console.error("Erro no listener de vendas:", error));
+        }
+
+        // --- LÓGICA DE LOGIN ---
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            if (username === 'Admin' && password === 'Admin') {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('app').classList.remove('hidden');
+                lucide.createIcons();
+                navigateTo('dashboard');
+            } else {
+                document.getElementById('login-error').classList.remove('hidden');
+            }
+        });
+
+        // --- ROTEAMENTO E RENDERIZAÇÃO ---
+        const viewContainer = document.getElementById('view-container');
+        const navLinks = document.querySelectorAll('.nav-link');
+
+        function navigateTo(view) {
+            state.currentView = view;
+            navLinks.forEach(link => {
+                link.classList.remove('bg-pink-100', 'font-semibold');
+                if (link.dataset.view === view) {
+                    link.classList.add('bg-pink-100', 'font-semibold');
+                }
+            });
+            render();
+        }
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                navigateTo(link.dataset.view);
+            });
+        });
+
+        function render() {
+            if (salesChart) {
+                salesChart.destroy();
+                salesChart = null;
+            }
+            switch (state.currentView) {
+                case 'dashboard': viewContainer.innerHTML = renderDashboard(); break;
+                case 'clientes': viewContainer.innerHTML = renderClientes(); break;
+                case 'produtos': viewContainer.innerHTML = renderProdutos(); break;
+                case 'estoque': 
+                    viewContainer.innerHTML = renderEstoque(); 
+                    renderSalesChart();
+                    break;
+                case 'vendas': viewContainer.innerHTML = renderVendas(); break;
+                case 'cobranca': viewContainer.innerHTML = renderCobranca(); break;
+                case 'financeiro': viewContainer.innerHTML = renderFinanceiro(); break;
+            }
+            lucide.createIcons();
+            addEventListeners();
+        }
+        
+        // --- TEMPLATES DAS VIEWS ---
+
+        function renderDashboard() {
+            const totalClients = state.clients.length;
+            const totalProducts = state.products.length;
+            const totalSales = state.sales.length;
+            const totalRevenue = state.sales.reduce((sum, sale) => sum + sale.total, 0);
+
+            return `
+                <h2 class="text-3xl font-bold text-slate-800 mb-6">Painel de Controle</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-pink-100"><i data-lucide="users" class="w-6 h-6 brand-pink"></i></div>
+                            <div class="ml-4">
+                                <p class="text-sm text-slate-500">Total de Clientes</p>
+                                <p class="text-2xl font-bold">${totalClients}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-pink-100"><i data-lucide="package" class="w-6 h-6 brand-pink"></i></div>
+                            <div class="ml-4">
+                                <p class="text-sm text-slate-500">Produtos Cadastrados</p>
+                                <p class="text-2xl font-bold">${totalProducts}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-pink-100"><i data-lucide="shopping-cart" class="w-6 h-6 brand-pink"></i></div>
+                            <div class="ml-4">
+                                <p class="text-sm text-slate-500">Vendas Realizadas</p>
+                                <p class="text-2xl font-bold">${totalSales}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-pink-100"><i data-lucide="bar-chart-2" class="w-6 h-6 brand-pink"></i></div>
+                            <div class="ml-4">
+                                <p class="text-sm text-slate-500">Receita Total</p>
+                                <p class="text-2xl font-bold">R$ ${totalRevenue.toFixed(2).replace('.', ',')}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderFinanceiro() {
+            const totalRevenue = state.sales.reduce((sum, sale) => sum + sale.total, 0);
+            const totalCost = state.sales.flatMap(sale => sale.items).reduce((sum, item) => sum + (item.cost * item.quantity), 0);
+            const netProfit = totalRevenue - totalCost;
+            const accountsReceivable = state.clients.reduce((sum, client) => sum + (client.debt || 0), 0);
+
+             return `
+                <h2 class="text-3xl font-bold text-slate-800 mb-6">Painel Financeiro</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <p class="text-sm text-slate-500">Receita Bruta</p>
+                        <p class="text-3xl font-bold text-blue-600">R$ ${totalRevenue.toFixed(2).replace('.', ',')}</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <p class="text-sm text-slate-500">Lucro Líquido</p>
+                        <p class="text-3xl font-bold text-green-600">R$ ${netProfit.toFixed(2).replace('.', ',')}</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <p class="text-sm text-slate-500">Contas a Receber</p>
+                        <p class="text-3xl font-bold text-orange-500">R$ ${accountsReceivable.toFixed(2).replace('.', ',')}</p>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h3 class="text-xl font-bold text-slate-800">Acesso Rápido</h3>
+                            <p class="text-slate-500">Gerencie as contas a receber de seus clientes.</p>
+                        </div>
+                        <button id="btn-goto-cobranca" class="bg-pink-400 text-white px-4 py-2 rounded-lg font-semibold hover:bg-pink-500 transition-colors flex items-center">
+                            <i data-lucide="dollar-sign" class="w-5 h-5 mr-2"></i> Ir para Cobrança
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderClientes() {
+            // 1. Calcular métricas para o relatório
+            const clientReportData = state.clients.map(client => {
+                const clientSales = state.sales.filter(sale => sale.clientId === client.id);
+                
+                if (clientSales.length === 0) {
+                    return {
+                        ...client,
+                        totalSpent: 0,
+                        purchaseCount: 0,
+                        lastPurchaseDate: 'N/A',
+                        preferredProduct: 'N/A'
+                    };
+                }
+
+                const totalSpent = clientSales.reduce((sum, sale) => sum + sale.total, 0);
+                const purchaseCount = clientSales.length;
+                
+                const lastPurchaseDate = clientSales.sort((a, b) => b.date.toDate() - a.date.toDate())[0].date.toDate().toLocaleDateString('pt-BR');
+
+                const allItems = clientSales.flatMap(sale => sale.items);
+                const productCounts = allItems.reduce((acc, item) => {
+                    acc[item.productName] = (acc[item.productName] || 0) + item.quantity;
+                    return acc;
+                }, {});
+
+                const preferredProduct = Object.keys(productCounts).length > 0
+                    ? Object.entries(productCounts).sort(([,a],[,b]) => b-a)[0][0]
+                    : 'N/A';
+
+                return { ...client, totalSpent, purchaseCount, lastPurchaseDate, preferredProduct };
+            }).sort((a, b) => b.totalSpent - a.totalSpent); // Ordena por quem gasta mais
+
+            // 2. Criar HTML com abas
+            const clientsRows = state.clients.map(client => `
+                <tr class="border-b border-slate-200 hover:bg-slate-50">
+                    <td class="p-4">${client.code}</td>
+                    <td class="p-4 font-medium">${client.name}</td>
+                    <td class="p-4">${client.cpf || 'N/A'}</td>
+                    <td class="p-4">${client.phone || 'N/A'}</td>
+                    <td class="p-4">${client.address || 'N/A'}</td>
+                </tr>
+            `).join('');
+
+            const reportRows = clientReportData.map(client => `
+                <tr class="border-b border-slate-200 hover:bg-slate-50">
+                    <td class="p-4 font-medium">${client.name}</td>
+                    <td class="p-4 font-semibold text-green-600">R$ ${client.totalSpent.toFixed(2).replace('.', ',')}</td>
+                    <td class="p-4 text-center">${client.purchaseCount}</td>
+                    <td class="p-4 text-center">${client.lastPurchaseDate}</td>
+                    <td class="p-4">${client.preferredProduct}</td>
+                </tr>
+            `).join('');
+
+            return `
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold text-slate-800">Gerenciar Clientes</h2>
+                    <button id="btn-new-client" class="bg-pink-400 text-white px-4 py-2 rounded-lg font-semibold hover:bg-pink-500 transition-colors flex items-center">
+                        <i data-lucide="plus" class="w-5 h-5 mr-2"></i> Novo Cliente
+                    </button>
+                </div>
+
+                <!-- Abas -->
+                <div class="mb-4 border-b border-gray-200">
+                    <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="client-tabs">
+                        <li class="mr-2">
+                            <a href="#" class="client-tab-link inline-block p-4 border-b-2 rounded-t-lg active" data-tab="lista">Lista de Clientes</a>
+                        </li>
+                        <li class="mr-2">
+                            <a href="#" class="client-tab-link inline-block p-4 border-b-2 rounded-t-lg" data-tab="relatorio">Relatório de Compras</a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Conteúdo das Abas -->
+                <div id="client-tab-content">
+                    <div id="tab-lista" class="client-tab-pane">
+                        <div class="bg-white rounded-lg shadow overflow-hidden">
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm text-left">
+                                    <thead class="bg-slate-100 text-slate-600 uppercase">
+                                        <tr>
+                                            <th class="p-4">Cód.</th>
+                                            <th class="p-4">Nome</th>
+                                            <th class="p-4">CPF</th>
+                                            <th class="p-4">Telefone</th>
+                                            <th class="p-4">Endereço</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${clientsRows || '<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhum cliente cadastrado.</td></tr>'}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="tab-relatorio" class="client-tab-pane hidden">
+                        <div class="bg-white rounded-lg shadow overflow-hidden">
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm text-left">
+                                    <thead class="bg-slate-100 text-slate-600 uppercase">
+                                        <tr>
+                                            <th class="p-4">Cliente</th>
+                                            <th class="p-4">Total Gasto</th>
+                                            <th class="p-4 text-center">Nº de Compras</th>
+                                            <th class="p-4 text-center">Última Compra</th>
+                                            <th class="p-4">Produto Preferido</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${reportRows || '<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhum dado para o relatório.</td></tr>'}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderProdutos() {
+            const brands = [...new Set(state.products.map(p => p.brand))].sort();
+            const productsByBrand = brands.map(brand => `
+                <div class="mb-8">
+                    <h3 class="text-xl font-bold text-slate-700 mb-4 border-b pb-2">${brand || 'Sem Marca'}</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        ${state.products.filter(p => p.brand === brand).map(product => `
+                            <div class="bg-white p-4 rounded-lg shadow-md border border-slate-200 flex flex-col justify-between">
+                                <p class="font-bold text-lg">${product.name}</p>
+                                <div>
+                                    <p class="text-slate-500 text-sm">Custo: <span class="font-semibold text-red-600">R$ ${parseFloat(product.cost || 0).toFixed(2).replace('.', ',')}</span></p>
+                                    <p class="text-slate-500 text-sm">Preço: <span class="font-semibold text-green-600">R$ ${parseFloat(product.price).toFixed(2).replace('.', ',')}</span></p>
+                                    <p class="text-slate-500 text-sm">Estoque: <span class="font-semibold text-slate-700">${product.quantity}</span></p>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+
+            return `
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold text-slate-800">Gerenciar Produtos</h2>
+                    <button id="btn-new-product" class="bg-pink-400 text-white px-4 py-2 rounded-lg font-semibold hover:bg-pink-500 transition-colors flex items-center">
+                        <i data-lucide="plus" class="w-5 h-5 mr-2"></i> Novo Produto
+                    </button>
+                </div>
+                ${productsByBrand || '<div class="bg-white p-6 rounded-lg shadow text-center text-slate-500">Nenhum produto cadastrado.</div>'}
+            `;
+        }
+
+        function renderEstoque() {
+            const salesCount = state.sales.flatMap(sale => sale.items).reduce((acc, item) => {
+                acc[item.productId] = (acc[item.productId] || 0) + item.quantity;
+                return acc;
+            }, {});
+
+            const productsWithSales = state.products.map(p => ({
+                ...p,
+                sold: salesCount[p.id] || 0
+            })).sort((a, b) => b.sold - a.sold);
+
+            const stockRows = productsWithSales.map(product => `
+                <tr class="border-b border-slate-200 hover:bg-slate-50">
+                    <td class="p-4 font-medium">${product.name}</td>
+                    <td class="p-4">${product.brand || 'N/A'}</td>
+                    <td class="p-4 text-center font-semibold ${product.quantity <= 5 ? 'text-red-500' : 'text-slate-700'}">${product.quantity}</td>
+                    <td class="p-4 text-center font-semibold text-blue-600">${product.sold}</td>
+                    <td class="p-4 text-center">
+                        <button data-product-id="${product.id}" data-action="add" class="btn-stock-update p-1 text-green-500 hover:text-green-700"><i data-lucide="plus-circle" class="w-5 h-5"></i></button>
+                        <button data-product-id="${product.id}" data-action="remove" class="btn-stock-update p-1 text-red-500 hover:text-red-700"><i data-lucide="minus-circle" class="w-5 h-5"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+
+            return `
+                <h2 class="text-3xl font-bold text-slate-800 mb-6">Controle de Estoque</h2>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-lg shadow overflow-hidden">
+                        <div class="p-4"><h3 class="text-lg font-bold">Análise de Saída</h3></div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left">
+                                <thead class="bg-slate-100 text-slate-600 uppercase">
+                                    <tr>
+                                        <th class="p-4">Produto</th>
+                                        <th class="p-4">Marca</th>
+                                        <th class="p-4 text-center">Em Estoque</th>
+                                        <th class="p-4 text-center">Vendidos</th>
+                                        <th class="p-4 text-center">Ajustar</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${stockRows || '<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhum produto no estoque.</td></tr>'}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="text-lg font-bold mb-4">Produtos Mais Vendidos</h3>
+                        <canvas id="salesChart"></canvas>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderSalesChart() {
+            const ctx = document.getElementById('salesChart');
+            if (!ctx) return;
+
+            const salesCount = state.sales.flatMap(sale => sale.items).reduce((acc, item) => {
+                acc[item.productName] = (acc[item.productName] || 0) + item.quantity;
+                return acc;
+            }, {});
+
+            const sortedProducts = Object.entries(salesCount).sort(([,a],[,b]) => b-a).slice(0, 10);
+
+            const labels = sortedProducts.map(([name]) => name);
+            const data = sortedProducts.map(([, count]) => count);
+
+            if (salesChart) {
+                salesChart.destroy();
+            }
+
+            salesChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Unidades Vendidas',
+                        data: data,
+                        backgroundColor: 'rgba(244, 114, 182, 0.6)',
+                        borderColor: 'rgba(244, 114, 182, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    scales: {
+                        x: { beginAtZero: true }
+                    },
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        title: { display: true, text: 'Top 10 Produtos por Unidades Vendidas' }
+                    }
+                }
+            });
+        }
+
+        function renderVendas() {
+             const salesRows = state.sales.sort((a, b) => b.date.toDate() - a.date.toDate()).map(sale => {
+                const client = state.clients.find(c => c.id === sale.clientId);
+                return `
+                    <tr class="border-b border-slate-200 hover:bg-slate-50">
+                        <td class="p-4">${sale.date.toDate().toLocaleDateString('pt-BR')}</td>
+                        <td class="p-4 font-medium">${client ? client.name : 'Consumidor'}</td>
+                        <td class="p-4">${sale.items.map(i => i.quantity).reduce((a, b) => a + b, 0)}</td>
+                        <td class="p-4 font-semibold text-green-600">R$ ${sale.total.toFixed(2).replace('.', ',')}</td>
+                        <td class="p-4">${sale.paymentMethod}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            return `
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold text-slate-800">Registro de Vendas</h2>
+                    <button id="btn-new-sale" class="bg-pink-400 text-white px-4 py-2 rounded-lg font-semibold hover:bg-pink-500 transition-colors flex items-center">
+                        <i data-lucide="plus" class="w-5 h-5 mr-2"></i> Nova Venda
+                    </button>
+                </div>
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-slate-100 text-slate-600 uppercase">
+                                <tr>
+                                    <th class="p-4">Data</th>
+                                    <th class="p-4">Cliente</th>
+                                    <th class="p-4">Itens</th>
+                                    <th class="p-4">Total</th>
+                                    <th class="p-4">Pagamento</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${salesRows || '<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhuma venda registrada.</td></tr>'}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderCobranca() {
+            const debtors = state.clients.filter(client => client.debt && client.debt > 0);
+            const debtorsRows = debtors.map(client => `
+                <tr class="border-b border-slate-200 hover:bg-slate-50">
+                    <td class="p-4 font-medium">${client.name}</td>
+                    <td class="p-4 font-semibold text-red-600">R$ ${client.debt.toFixed(2).replace('.', ',')}</td>
+                    <td class="p-4">${client.phone}</td>
+                    <td class="p-4">
+                        <button data-client-id="${client.id}" data-client-name="${client.name}" data-client-debt="${client.debt}" class="btn-receive-payment bg-green-500 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-green-600 flex items-center">
+                           <i data-lucide="check" class="w-4 h-4 mr-1"></i> Receber
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            return `
+                <h2 class="text-3xl font-bold text-slate-800 mb-6">Controle de Cobrança</h2>
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-slate-100 text-slate-600 uppercase">
+                                <tr>
+                                    <th class="p-4">Cliente Devedor</th>
+                                    <th class="p-4">Valor Devido</th>
+                                    <th class="p-4">Telefone de Contato</th>
+                                    <th class="p-4">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${debtorsRows || '<tr><td colspan="4" class="p-4 text-center text-slate-500">Nenhum cliente com saldo devedor.</td></tr>'}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // --- MODAIS E FORMULÁRIOS ---
+        
+        function openModal(content) {
+            const modalContainer = document.getElementById('modal-container');
+            const modalContent = document.getElementById('modal-content');
+            modalContent.innerHTML = content;
+            modalContainer.classList.remove('hidden');
+            lucide.createIcons();
+            addModalEventListeners();
+        }
+
+        function closeModal() {
+            document.getElementById('modal-container').classList.add('hidden');
+            document.getElementById('modal-content').innerHTML = '';
+        }
+
+        function showNewClientModal() {
+            openModal(`
+                <form id="form-new-client">
+                    <h3 class="text-2xl font-bold mb-4">Cadastrar Novo Cliente</h3>
+                    <div class="space-y-4">
+                        <div><label class="block text-sm font-medium">Nome Completo*</label><input type="text" name="name" required class="w-full mt-1 px-3 py-2 border rounded-md focus:ring-brand-pink focus:border-brand-pink"></div>
+                        <div><label class="block text-sm font-medium">CPF</label><input type="text" name="cpf" class="w-full mt-1 px-3 py-2 border rounded-md focus:ring-brand-pink focus:border-brand-pink"></div>
+                        <div><label class="block text-sm font-medium">Telefone</label><input type="tel" name="phone" class="w-full mt-1 px-3 py-2 border rounded-md focus:ring-brand-pink focus:border-brand-pink"></div>
+                        <div><label class="block text-sm font-medium">Endereço</label><input type="text" name="address" class="w-full mt-1 px-3 py-2 border rounded-md focus:ring-brand-pink focus:border-brand-pink"></div>
+                    </div>
+                    <div class="mt-6 flex justify-end space-x-3"><button type="button" id="btn-cancel-modal" class="px-4 py-2 bg-slate-200 rounded-lg hover:bg-slate-300">Cancelar</button><button type="submit" class="px-4 py-2 bg-pink-400 text-white rounded-lg hover:bg-pink-500">Salvar Cliente</button></div>
+                </form>
+            `);
+        }
+        
+        function showNewProductModal() {
+            openModal(`
+                <form id="form-new-product">
+                    <h3 class="text-2xl font-bold mb-4">Cadastrar Novo Produto</h3>
+                    <div class="space-y-4">
+                        <div><label class="block text-sm font-medium">Nome do Produto*</label><input type="text" name="name" required class="w-full mt-1 px-3 py-2 border rounded-md focus:ring-brand-pink focus:border-brand-pink"></div>
+                        <div><label class="block text-sm font-medium">Marca</label><input type="text" name="brand" class="w-full mt-1 px-3 py-2 border rounded-md focus:ring-brand-pink focus:border-brand-pink"></div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><label class="block text-sm font-medium">Custo (R$)*</label><input type="number" name="cost" required min="0" step="0.01" class="w-full mt-1 px-3 py-2 border rounded-md focus:ring-brand-pink focus:border-brand-pink"></div>
+                            <div><label class="block text-sm font-medium">Preço de Venda (R$)*</label><input type="number" name="price" required min="0" step="0.01" class="w-full mt-1 px-3 py-2 border rounded-md focus:ring-brand-pink focus:border-brand-pink"></div>
+                        </div>
+                        <div><label class="block text-sm font-medium">Quantidade Inicial*</label><input type="number" name="quantity" required min="0" class="w-full mt-1 px-3 py-2 border rounded-md focus:ring-brand-pink focus:border-brand-pink"></div>
+                    </div>
+                    <div class="mt-6 flex justify-end space-x-3"><button type="button" id="btn-cancel-modal" class="px-4 py-2 bg-slate-200 rounded-lg hover:bg-slate-300">Cancelar</button><button type="submit" class="px-4 py-2 bg-pink-400 text-white rounded-lg hover:bg-pink-500">Salvar Produto</button></div>
+                </form>
+            `);
+        }
+
+        function showNewSaleModal() {
+            const clientOptions = state.clients.map(c => `<option value="${c.id}">${c.code} - ${c.name}</option>`).join('');
+            const productOptions = state.products.filter(p => p.quantity > 0).map(p => `<option value="${p.id}">${p.name} (Est: ${p.quantity}) - R$ ${parseFloat(p.price).toFixed(2)}</option>`).join('');
+
+            openModal(`
+                <form id="form-new-sale">
+                    <h3 class="text-2xl font-bold mb-4">Registrar Nova Venda</h3>
+                    <div class="mb-4"><label class="block text-sm font-medium">Cliente*</label><select name="clientId" required class="w-full mt-1 px-3 py-2 border rounded-md focus:ring-brand-pink focus:border-brand-pink"><option value="consumidor">Consumidor (Sem cadastro)</option>${clientOptions}</select></div>
+                    <div class="mb-4 border rounded-lg p-4"><h4 class="font-semibold mb-2">Itens da Venda</h4><div id="sale-items-container" class="space-y-2"></div><div class="flex items-center space-x-2 mt-3"><select id="select-product-to-add" class="flex-grow mt-1 px-3 py-2 border rounded-md"><option value="">Selecione um produto...</option>${productOptions}</select><button type="button" id="btn-add-sale-item" class="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600"><i data-lucide="plus"></i></button></div></div>
+                    <div class="grid grid-cols-2 gap-4"><div><label class="block text-sm font-medium">Forma de Pagamento*</label><select name="paymentMethod" required class="w-full mt-1 px-3 py-2 border rounded-md focus:ring-brand-pink focus:border-brand-pink"><option value="Dinheiro">Dinheiro</option><option value="Pix">Pix</option><option value="Cartão de Débito">Cartão de Débito</option><option value="Cartão de Crédito">Cartão de Crédito</option><option value="A Prazo">A Prazo</option></select></div><div class="text-right"><p class="text-sm font-medium">TOTAL</p><p id="sale-total" class="text-3xl font-bold text-green-600">R$ 0,00</p></div></div>
+                    <div id="sale-error" class="text-red-500 text-sm text-center mt-4 hidden"></div>
+                    <div class="mt-6 flex justify-end space-x-3"><button type="button" id="btn-cancel-modal" class="px-4 py-2 bg-slate-200 rounded-lg hover:bg-slate-300">Cancelar</button><button type="submit" class="px-4 py-2 bg-pink-400 text-white rounded-lg hover:bg-pink-500">Finalizar Venda</button></div>
+                </form>
+            `);
+        }
+        
+        function showReceivePaymentModal(clientId, clientName, clientDebt) {
+             openModal(`
+                <form id="form-receive-payment">
+                    <h3 class="text-2xl font-bold mb-2">Receber Pagamento</h3>
+                    <p class="mb-4 text-slate-600">Cliente: <span class="font-semibold">${clientName}</span></p>
+                    <input type="hidden" name="clientId" value="${clientId}">
+                    <input type="hidden" name="currentDebt" value="${clientDebt}">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium">Valor Devido</label>
+                            <input type="text" readonly value="R$ ${parseFloat(clientDebt).toFixed(2)}" class="w-full mt-1 px-3 py-2 border rounded-md bg-slate-100">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium">Valor a Receber*</label>
+                            <input type="number" name="amount" required min="0.01" max="${clientDebt}" step="0.01" class="w-full mt-1 px-3 py-2 border rounded-md focus:ring-brand-pink focus:border-brand-pink">
+                        </div>
+                    </div>
+                    <div class="mt-6 flex justify-end space-x-3">
+                        <button type="button" id="btn-cancel-modal" class="px-4 py-2 bg-slate-200 rounded-lg hover:bg-slate-300">Cancelar</button>
+                        <button type="submit" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600">Confirmar Recebimento</button>
+                    </div>
+                </form>
+            `);
+        }
+
+        // --- LÓGICA DE NEGÓCIO E FIRESTORE ---
+
+        async function handleNewClient(e) { e.preventDefault(); const d=new FormData(e.target); await addDoc(collection(db,dbPaths.clients),{name:d.get('name'),cpf:d.get('cpf'),phone:d.get('phone'),address:d.get('address'),debt:0,createdAt:new Date()}); closeModal(); }
+        
+        async function handleNewProduct(e) { e.preventDefault(); const d=new FormData(e.target); await addDoc(collection(db,dbPaths.products),{name:d.get('name'),brand:d.get('brand'),cost:parseFloat(d.get('cost')),price:parseFloat(d.get('price')),quantity:parseInt(d.get('quantity')),createdAt:new Date()}); closeModal(); }
+        
+        async function handleStockUpdate(productId, action) {
+            const amountStr = prompt(`Quanto você quer ${action === 'add' ? 'adicionar' : 'remover'}?`);
+            if (!amountStr) return;
+            const amount = parseInt(amountStr);
+            if (isNaN(amount) || amount <= 0) return;
+            
+            const product = state.products.find(p => p.id === productId);
+            if (!product) return;
+
+            const newQuantity = action === 'add' ? product.quantity + amount : product.quantity - amount;
+            if (newQuantity < 0) {
+                alert("Não é possível deixar o estoque negativo.");
+                return;
+            }
+            const productRef = doc(db, dbPaths.products, productId);
+            await updateDoc(productRef, { quantity: newQuantity });
+        }
+        
+        async function handleReceivePayment(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const clientId = formData.get('clientId');
+            const currentDebt = parseFloat(formData.get('currentDebt'));
+            const amountReceived = parseFloat(formData.get('amount'));
+            
+            if (isNaN(amountReceived) || amountReceived <= 0 || amountReceived > currentDebt) {
+                alert("Valor inválido.");
+                return;
+            }
+
+            const newDebt = currentDebt - amountReceived;
+            const clientRef = doc(db, dbPaths.clients, clientId);
+            try {
+                await updateDoc(clientRef, { debt: newDebt });
+                closeModal();
+            } catch (error) {
+                console.error("Erro ao receber pagamento:", error);
+                alert("Ocorreu um erro ao processar o pagamento.");
+            }
+        }
+
+        async function handleNewSale(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const clientId = formData.get('clientId');
+            const paymentMethod = formData.get('paymentMethod');
+            const saleError = document.getElementById('sale-error');
+            saleError.classList.add('hidden');
+
+            if (paymentMethod === 'A Prazo' && clientId === 'consumidor') {
+                saleError.textContent = 'Para vendas "A Prazo", é obrigatório selecionar um cliente cadastrado.';
+                saleError.classList.remove('hidden');
+                return;
+            }
+            
+            const saleItems = Array.from(document.querySelectorAll('.sale-item')).map(itemEl => {
+                const product = state.products.find(p => p.id === itemEl.dataset.productId);
+                return {
+                    productId: itemEl.dataset.productId,
+                    productName: itemEl.dataset.productName,
+                    quantity: parseInt(itemEl.querySelector('input[type="number"]').value),
+                    price: parseFloat(itemEl.dataset.price),
+                    cost: product ? (product.cost || 0) : 0 // Adiciona o custo
+                }
+            });
+
+            if(saleItems.length === 0) {
+                saleError.textContent = 'Adicione pelo menos um item à venda.';
+                saleError.classList.remove('hidden');
+                return;
+            }
+            
+            const total = saleItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            
+            const saleData = { clientId, paymentMethod, items: saleItems, total, date: new Date() };
+
+            try {
+                const batch = writeBatch(db);
+                batch.set(doc(collection(db, dbPaths.sales)), saleData);
+
+                for (const item of saleItems) {
+                    const productRef = doc(db, dbPaths.products, item.productId);
+                    const product = state.products.find(p => p.id === item.productId);
+                    batch.update(productRef, { quantity: product.quantity - item.quantity });
+                }
+
+                if (paymentMethod === 'A Prazo') {
+                    const clientRef = doc(db, dbPaths.clients, clientId);
+                    const client = state.clients.find(c => c.id === clientId);
+                    batch.update(clientRef, { debt: (client.debt || 0) + total });
+                }
+                
+                await batch.commit();
+                closeModal();
+
+            } catch (error) {
+                console.error("Erro ao finalizar a venda:", error);
+                saleError.textContent = 'Ocorreu um erro ao processar a venda. Tente novamente.';
+                saleError.classList.remove('hidden');
+            }
+        }
+
+        // --- EVENT LISTENERS DINÂMICOS ---
+        
+        function addEventListeners() {
+            document.getElementById('btn-new-client')?.addEventListener('click', showNewClientModal);
+            document.getElementById('btn-new-product')?.addEventListener('click', showNewProductModal);
+            document.getElementById('btn-new-sale')?.addEventListener('click', showNewSaleModal);
+            document.getElementById('btn-goto-cobranca')?.addEventListener('click', () => navigateTo('cobranca'));
+            
+            document.querySelectorAll('.btn-stock-update').forEach(btn => {
+                btn.addEventListener('click', () => handleStockUpdate(btn.dataset.productId, btn.dataset.action));
+            });
+            
+            document.querySelectorAll('.btn-receive-payment').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const { clientId, clientName, clientDebt } = btn.dataset;
+                    showReceivePaymentModal(clientId, clientName, clientDebt);
+                });
+            });
+
+            // Listener para as abas de Clientes
+            document.querySelectorAll('.client-tab-link').forEach(tabLink => {
+                tabLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    
+                    document.querySelectorAll('.client-tab-link').forEach(link => {
+                        link.classList.remove('active', 'border-brand-pink', 'brand-pink');
+                        link.classList.add('border-transparent', 'hover:text-gray-600', 'hover:border-gray-300');
+                    });
+                    
+                    e.currentTarget.classList.add('active', 'border-brand-pink', 'brand-pink');
+                    e.currentTarget.classList.remove('border-transparent', 'hover:text-gray-600', 'hover:border-gray-300');
+
+                    const tabId = e.currentTarget.dataset.tab;
+                    document.querySelectorAll('.client-tab-pane').forEach(pane => {
+                        if (pane.id === `tab-${tabId}`) {
+                            pane.classList.remove('hidden');
+                        } else {
+                            pane.classList.add('hidden');
+                        }
+                    });
+                });
+            });
+        }
+        
+        function addModalEventListeners() {
+            document.getElementById('btn-cancel-modal')?.addEventListener('click', closeModal);
+            document.getElementById('form-new-client')?.addEventListener('submit', handleNewClient);
+            document.getElementById('form-new-product')?.addEventListener('submit', handleNewProduct);
+            document.getElementById('form-new-sale')?.addEventListener('submit', handleNewSale);
+            document.getElementById('form-receive-payment')?.addEventListener('submit', handleReceivePayment);
+            
+            const btnAddSaleItem = document.getElementById('btn-add-sale-item');
+            if (btnAddSaleItem) {
+                btnAddSaleItem.addEventListener('click', () => {
+                    const select = document.getElementById('select-product-to-add');
+                    const productId = select.value;
+                    if (!productId) return;
+
+                    const product = state.products.find(p => p.id === productId);
+                    if (document.querySelector(`.sale-item[data-product-id="${productId}"]`)) return;
+
+                    const itemHtml = `<div class="sale-item flex items-center space-x-2 p-2 bg-slate-50 rounded" data-product-id="${product.id}" data-price="${product.price}" data-product-name="${product.name}"><p class="flex-grow">${product.name}</p><input type="number" value="1" min="1" max="${product.quantity}" class="w-20 text-center border rounded-md p-1 sale-item-quantity"><p class="w-24 text-right font-semibold sale-item-subtotal">R$ ${parseFloat(product.price).toFixed(2)}</p><button type="button" class="btn-remove-sale-item text-red-500 hover:text-red-700 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>`;
+                    document.getElementById('sale-items-container').insertAdjacentHTML('beforeend', itemHtml);
+                    updateSaleTotal();
+                    lucide.createIcons();
+                });
+            }
+            
+            document.getElementById('sale-items-container')?.addEventListener('click', (e) => {
+                if (e.target.closest('.btn-remove-sale-item')) {
+                    e.target.closest('.sale-item').remove();
+                    updateSaleTotal();
+                }
+            });
+            document.getElementById('sale-items-container')?.addEventListener('input', (e) => {
+                 if(e.target.classList.contains('sale-item-quantity')) updateSaleTotal();
+            });
+        }
+        
+        function updateSaleTotal() {
+            let total = 0;
+            document.querySelectorAll('.sale-item').forEach(item => {
+                const price = parseFloat(item.dataset.price);
+                const quantity = parseInt(item.querySelector('input').value);
+                const subtotal = price * quantity;
+                item.querySelector('.sale-item-subtotal').textContent = `R$ ${subtotal.toFixed(2)}`;
+                total += subtotal;
+            });
+            document.getElementById('sale-total').textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
+        }
+
+    </script>
+</body>
+</html>
