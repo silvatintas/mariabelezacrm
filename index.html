@@ -690,46 +690,10 @@
                 <div class="bg-white rounded-lg shadow overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr><th class="p-4 text-left">Data</th><th class="p-4 text-left">Cliente</th><th class="p-4 text-center">Itens</th><th class="p-4 text-right">Total</th><th class="p-4 text-center">Ações</th></tr></thead><tbody>${quoteRows||`<tr><td colspan="5" class="p-4 text-center">Nenhum orçamento para esta data.</td></tr>`}</tbody></table></div></div>`;
         }
         
-        function renderOpcoes() {
-            const userRows = state.users.filter(u => u.username !== 'Admin').map(user => `<tr class="border-b"><td class="p-4 font-medium">${user.username}</td><td class="p-4">${user.role}</td><td class="p-4 flex gap-2"><button class="btn-edit-user p-2 text-blue-500" data-user-id="${user.id}"><i data-lucide="key" class="w-5 h-5"></i></button><button class="btn-delete-user p-2 text-red-500" data-user-id="${user.id}"><i data-lucide="trash-2" class="w-5 h-5"></i></button></td></tr>`).join('');
-            const onlineUserRows = state.onlineUsers.map(user => `<li class="flex items-center gap-2"><span class="w-2 h-2 bg-green-500 rounded-full"></span><span>${user.username}</span></li>`).join('');
-            return `
-                <h2 class="text-3xl font-bold text-slate-800 mb-6">Opções do Sistema</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="md:col-span-2 bg-white p-6 rounded-lg shadow">
-                        <h3 class="text-xl font-bold text-slate-800 mb-4">Gerenciar Usuários</h3>
-                        <button id="btn-new-user" class="w-full mb-4 bg-pink-400 text-white px-5 py-3 rounded-lg font-semibold hover:bg-pink-500 flex items-center justify-center"><i data-lucide="user-plus" class="w-5 h-5 mr-2"></i> Novo Usuário</button>
-                        <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr><th class="p-4 text-left">Usuário</th><th class="p-4 text-left">Função</th><th class="p-4 text-left">Ações</th></tr></thead><tbody>${userRows||'<tr><td colspan="3" class="p-4 text-center">Nenhum usuário.</td></tr>'}</tbody></table></div>
-                    </div>
-                    <div class="space-y-6">
-                        <div class="bg-white p-6 rounded-lg shadow">
-                            <h3 class="text-xl font-bold text-slate-800 mb-4">Usuários Online</h3>
-                            <ul class="space-y-2">${onlineUserRows||'<li class="text-slate-500">Nenhum usuário online.</li>'}</ul>
-                        </div>
-                        <div class="bg-white p-6 rounded-lg shadow">
-                            <h3 class="text-xl font-bold text-slate-800 mb-4">Backup Manual</h3>
-                            <p class="text-sm text-slate-500 mb-4">Baixe um arquivo com todos os dados do sistema. Guarde em um local seguro.</p>
-                            <button id="btn-manual-backup" class="w-full bg-blue-500 text-white px-5 py-3 rounded-lg font-semibold hover:bg-blue-600 flex items-center justify-center">
-                                <i data-lucide="download-cloud" class="w-5 h-5 mr-2"></i> Baixar Arquivo de Backup
-                            </button>
-                        </div>
-                        <div class="bg-white p-6 rounded-lg shadow border-2 border-red-300">
-                            <h3 class="text-xl font-bold text-red-600 mb-4">Reinicialização do Sistema</h3>
-                            <p class="text-sm text-slate-500 mb-4">
-                                Esta ação irá <strong>apagar todos os dados de vendas, orçamentos, contas e pedidos</strong>. O estoque será zerado.
-                                Cadastros de clientes, produtos e usuários serão mantidos. <strong>AÇÃO IRREVERSÍVEL.</strong>
-                            </p>
-                            <button id="btn-system-reset" class="w-full bg-red-600 text-white px-5 py-3 rounded-lg font-semibold hover:bg-red-700 flex items-center justify-center">
-                                <i data-lucide="alert-triangle" class="w-5 h-5 mr-2"></i> Zerar Dados do Sistema
-                            </button>
-                        </div>
-                    </div>
-                </div>`;
-        }
-        
+        // CORRIGIDO: Bug na ordenação que causava tela branca
         function renderContasAPagar() {
-            const pendingExpenses = state.expenses.filter(e => e.status === 'Pendente').sort((a,b) => a.dueDate.toDate() - b.dueDate.toDate());
-            const paidExpenses = state.expenses.filter(e => e.status === 'Pago').sort((a,b) => b.paymentDate ? b.paymentDate.toDate() - a.date.toDate() : -1);
+            const pendingExpenses = state.expenses.filter(e => e.status === 'Pendente').sort((a,b) => (a.dueDate?.toDate() || 0) - (b.dueDate?.toDate() || 0));
+            const paidExpenses = state.expenses.filter(e => e.status === 'Pago').sort((a, b) => (b.paymentDate?.toDate() || 0) - (a.paymentDate?.toDate() || 0));
 
              const pendingRows = pendingExpenses.map(exp => {
                  const category = state.expenseCategories.find(c => c.id === exp.categoryId);
