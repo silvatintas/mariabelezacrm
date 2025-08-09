@@ -1284,7 +1284,7 @@
                             const receivableData = {
                                 clientId, clientName, saleId,
                                 amount: installmentAmount,
-                                remainingAmount: installmentAmount, // NOVO
+                                remainingAmount: installmentAmount, 
                                 installmentNumber: i,
                                 totalInstallments: installmentsCount,
                                 dueDate: dueDate,
@@ -1317,6 +1317,9 @@
             }
         }
 
+        // ===================================================================
+        // FUNÇÃO DE BACKUP CORRIGIDA
+        // ===================================================================
         async function handleManualBackup() {
             try {
                 const button = document.getElementById('btn-manual-backup');
@@ -1325,13 +1328,37 @@
                 lucide.createIcons();
 
                 const backupData = {
-                    clients: state.clients, products: state.products, users: state.users,
-                    sales: state.sales.map(s => ({...s, date: s.date.toDate()})),
-                    quotes: state.quotes.map(q => ({...q, date: q.date.toDate()})),
-                    purchaseOrders: state.purchaseOrders.map(p => ({...p, date: p.date.toDate(), receivedDate: p.receivedDate ? p.receivedDate.toDate() : null})),
-                    expenses: state.expenses.map(e => ({...e, date: e.date.toDate(), dueDate: e.dueDate.toDate(), paymentDate: e.paymentDate ? e.paymentDate.toDate() : null})),
-                    expenseCategories: state.expenseCategories,
-                    receivables: state.receivables.map(r => ({...r, dueDate: r.dueDate.toDate(), paymentDate: r.paymentDate ? r.paymentDate.toDate() : null})),
+                    clients: state.clients.map(c => ({ ...c })),
+                    products: state.products.map(p => ({
+                        ...p,
+                        validityDate: p.validityDate ? p.validityDate.toDate() : null,
+                    })),
+                    users: state.users.map(u => ({ ...u })),
+                    sales: state.sales.map(s => ({
+                        ...s,
+                        date: s.date ? s.date.toDate() : null,
+                    })),
+                    quotes: state.quotes.map(q => ({
+                        ...q,
+                        date: q.date ? q.date.toDate() : null,
+                    })),
+                    purchaseOrders: state.purchaseOrders.map(p => ({
+                        ...p,
+                        date: p.date ? p.date.toDate() : null,
+                        receivedDate: p.receivedDate ? p.receivedDate.toDate() : null
+                    })),
+                    expenses: state.expenses.map(e => ({
+                        ...e,
+                        date: e.date ? e.date.toDate() : null,
+                        dueDate: e.dueDate ? e.dueDate.toDate() : null,
+                        paymentDate: e.paymentDate ? e.paymentDate.toDate() : null
+                    })),
+                    expenseCategories: state.expenseCategories.map(ec => ({ ...ec })),
+                    receivables: state.receivables.map(r => ({
+                        ...r,
+                        dueDate: r.dueDate ? r.dueDate.toDate() : null,
+                        paymentDate: r.paymentDate ? r.paymentDate.toDate() : null
+                    })),
                     exportedAt: new Date().toISOString()
                 };
                 
@@ -1353,7 +1380,11 @@
 
             } catch (error) {
                 console.error("Erro ao gerar backup:", error);
-                alert("Ocorreu um erro ao gerar o backup.");
+                alert("Ocorreu um erro ao gerar o backup. Verifique o console para detalhes.");
+                const button = document.getElementById('btn-manual-backup');
+                button.disabled = false;
+                button.innerHTML = `<i data-lucide="download-cloud" class="w-5 h-5 mr-2"></i> Baixar Backup`;
+                lucide.createIcons();
             }
         }
         
@@ -1755,7 +1786,6 @@
 
         // --- FUNÇÕES UTILITÁRIAS ---
 
-        // NOVO: CALCULA JUROS E TOTAL
         function calculateTotalDue(receivable) {
             const principal = receivable.remainingAmount ?? receivable.amount;
             if (receivable.status !== 'Pendente') {
